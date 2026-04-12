@@ -1,72 +1,66 @@
 #include <Audio.h>
 #include <Wire.h>
 #include <SPI.h>
-#include "Voice.h"
+#include "voice/VoiceController.h"
+#include "voice/wave/WaveSetter.h"
+#include "voice/wave/SineWaveSetter.h"
 #include "USBHost_t36.h"
+#include "Constants.h"
 
-#define MAX_VOICES 1
-Voice voicePool[MAX_VOICES];
+AudioOutputI2S        i2s1;
+AudioControlSGTL5000  sgtl5000;
+AudioSynthWaveform waveForm;
 
-// You'll need mixers to sum these. 
-// A Mixer4 takes 4 inputs, so 2 mixers feed into a 3rd master mixer.
-AudioMixer4 mixerLeft;
-AudioMixer4 mixerRight;
-AudioMixer4 masterMix;
+VoiceController voiceController;
 
-// Connections (Statically defined in the global scope)
-AudioConnection patch0(voicePool[0].getOutput(), 0, mixerLeft, 0);
-/*AudioConnection patch1(voicePool[1].getOutput(), 0, mixerLeft, 1);
-AudioConnection patch2(voicePool[2].getOutput(), 0, mixerLeft, 2);
-AudioConnection patch3(voicePool[3].getOutput(), 0, mixerLeft, 3);
-AudioConnection patch4(voicePool[4].getOutput(), 0, mixerRight, 0);
-AudioConnection patch5(voicePool[5].getOutput(), 0, mixerRight, 1);
-AudioConnection patch6(voicePool[6].getOutput(), 0, mixerRight, 2);
-AudioConnection patch7(voicePool[7].getOutput(), 0, mixerRight, 3);*/
+AudioConnection testPatch(voiceController.getOutput(), 0, i2s1, 0);
 
-/*AudioConnection patch8(mixerLeft, 0, masterMix, 0);
-AudioConnection patch9(mixerRight, 0, masterMix, 1);*/
-
-AudioOutputI2S           i2s1;
-AudioControlSGTL5000     sgtl5000_1;
-
-AudioConnection          patchCord1(voicePool[0].getOutput(), 0, i2s1, 0);
+SineWaveSetter sineWaveSetter;
 
 USBHost myusb;
 USBHub hunb(myusb);
 MIDIDevice midi1(myusb);
 
 void myNoteOn(byte channel, byte note, byte velocity) {
-  Serial.printf("On: Channel %d, note %d, velocity %d\n", channel, note, velocity); 
-  voicePool[0].noteOn(440 + note);
+    Serial.printf("On: Channel %d, note %d, velocity %d\n", channel, note, velocity); 
+
+    voiceController.noteOn(note, velocity);
 }
 
 void myNoteOff(byte channel, byte note, byte velocity) {
-  Serial.printf("Off: Channel %d, note %d, velocity %d\n", channel, note, velocity); 
-  voicePool[0].noteOff();
-}
+    Serial.printf("Off: Channel %d, note %d, velocity %d\n", channel, note, velocity); 
+    voiceController.noteOff(note, velocity);
+} 
 
-void setup() {
-  // Allocate memory for the audio engine
-  AudioMemory(20);
 
-  myusb.begin();
+void setup() 
+{
+    // Allocate memory for the audio engine
+    AudioMemory(200);
 
-  // Initialize USB
-  usbMIDI.setHandleNoteOn(myNoteOn);
-  usbMIDI.setHandleNoteOff(myNoteOff);
-  
-  // Initialize the audio shield hardware
-  //sgtl5000_1.enable();
-  //sgtl5000_1.volume(0.5);
+    sgtl5000.enable(); 
+    sgtl5000.volume(0.8);
+    sgtl5000.lineOutLevel(21);
+    sgtl5000.unmuteLineout();
 
+    myusb.begin();
+
+    usbMIDI.setHandleNoteOn(myNoteOn);
+    usbMIDI.setHandleNoteOff(myNoteOff);
+    
+    WaveSetter* waveSetters[] = { &sineWaveSetter };
+
+    voiceController.setWaveSetters(waveSetters);
 }
 
 int i = 0;
-void loop() {
-  myusb.Task();
+void loop() 
+{
+    //myusb.Task();
+    usbMIDI.read();
 
-  if (++i % 1000000 == 0) 
-  {
-    Serial.print(".");
-  }
+    if (++i % 500000 == 0) 
+    {
+      Serial.print(".");
+    }
 }
