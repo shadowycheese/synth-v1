@@ -3,9 +3,11 @@
 
 #include <Audio.h>
 #include "../Constants.h"
+#include "../SynthConfiguration.h"
+#include "../SynthConfigurationListener.h"
 #include "wave/WaveSetter.h"
 
-class Voice {
+class Voice : public SynthConfigurationListener {
 public:
     Voice();
     void noteOn(byte note, float frequency, float velocity);
@@ -19,6 +21,14 @@ public:
     bool isPlaying();
     uint32_t timestamp() { return _timestamp; };
     byte noteLastPlayed() { return _note; };
+    float frequency() { return _frequency; };
+    float amplitude() { return _amplitude; };
+    void setSynthConfiguration(SynthConfiguration *configuration) { _synthConfiguration = configuration; };
+    void onSynthConfigurationChanged(
+        bool waveFormChanged, 
+        bool waveFormParamsChanged, 
+        bool envelopeChanged, 
+        bool volumeChanged);
 
 private:
     AudioMixer4 mixer1;
@@ -38,6 +48,9 @@ private:
 
     uint32_t _timestamp;
     byte _note;
+    float _frequency;
+    float _amplitude;
+    SynthConfiguration *_synthConfiguration;
 };
 
 #endif

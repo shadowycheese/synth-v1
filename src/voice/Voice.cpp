@@ -35,13 +35,19 @@ Voice::Voice() :
     envelope1.release(300);
 }
 
-void Voice::setWave(WaveSetter *setter) {
+void Voice::setWave(WaveSetter *setter) 
+{
     waveSetter = setter;
 }
 
-void Voice::noteOn(byte note, float frequency, float velocity) {
-    if (waveSetter) {
-        waveSetter->configure(frequency, velocity, waveforms);
+void Voice::noteOn(byte note, float frequency, float velocity) 
+{
+    _frequency = frequency;
+    _amplitude = 0.3;
+
+    if (waveSetter) 
+    {
+        waveSetter->configure(frequency, _amplitude, true, _synthConfiguration, waveforms);
     }
 
     envelope1.noteOn();
@@ -50,15 +56,26 @@ void Voice::noteOn(byte note, float frequency, float velocity) {
     _timestamp = millis();
 }
 
-void Voice::noteOff() {
+void Voice::noteOff() 
+{
     envelope1.noteOff();
 }
 
-void Voice::setEnvelope(float a, float d, float s, float r) {
-    envelope1.attack(a);
-    envelope1.decay(d);
-    envelope1.sustain(s);
-    envelope1.release(r);
+void Voice::onSynthConfigurationChanged(
+        bool waveFormChanged, 
+        bool waveFormParamsChanged, 
+        bool envelopeChanged, 
+        bool volumeChange) 
+{
+    envelope1.attack(_synthConfiguration -> attack);
+    envelope1.decay(_synthConfiguration -> decay);
+    envelope1.sustain(_synthConfiguration -> sustain);
+    envelope1.release(_synthConfiguration -> release);
+
+    if (waveSetter) 
+    {
+        waveSetter -> configure(_frequency, _amplitude, false, _synthConfiguration, waveforms);
+    }
 }
 
 bool Voice::isPlaying() 

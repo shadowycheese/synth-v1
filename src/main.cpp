@@ -2,36 +2,43 @@
 #include <Wire.h>
 #include <SPI.h>
 #include "voice/VoiceController.h"
-#include "voice/wave/WaveSetter.h"
-#include "voice/wave/SineWaveSetter.h"
+#include "voice/wave/Waves.h"
 #include "USBHost_t36.h"
 #include "Constants.h"
+#include "io/ControllerIo.h"
 
 AudioOutputI2S        i2s1;
 AudioControlSGTL5000  sgtl5000;
 AudioSynthWaveform waveForm;
 
-VoiceController voiceController;
+SynthConfiguration synthConfiguration;
+
+VoiceController voiceController(&synthConfiguration);
 
 AudioConnection testPatch(voiceController.getOutput(), 0, i2s1, 0);
 
-SineWaveSetter sineWaveSetter;
+SimpleWaveSetter simpleWaveSetter;
+SuperWaveSetter superWaveSetter;
+ControllerIo controllerIo(&synthConfiguration, &voiceController);
+
 
 USBHost myusb;
 USBHub hunb(myusb);
 MIDIDevice midi1(myusb);
 
-void myNoteOn(byte channel, byte note, byte velocity) {
+
+void myNoteOn(byte channel, byte note, byte velocity) 
+{
     Serial.printf("On: Channel %d, note %d, velocity %d\n", channel, note, velocity); 
 
     voiceController.noteOn(note, velocity);
 }
 
-void myNoteOff(byte channel, byte note, byte velocity) {
+void myNoteOff(byte channel, byte note, byte velocity) 
+{
     Serial.printf("Off: Channel %d, note %d, velocity %d\n", channel, note, velocity); 
     voiceController.noteOff(note, velocity);
 } 
-
 
 void setup() 
 {
@@ -48,19 +55,16 @@ void setup()
     usbMIDI.setHandleNoteOn(myNoteOn);
     usbMIDI.setHandleNoteOff(myNoteOff);
     
-    WaveSetter* waveSetters[] = { &sineWaveSetter };
+    WaveSetter* waveSetters[] = { &simpleWaveSetter, &superWaveSetter };
 
     voiceController.setWaveSetters(waveSetters);
+
+    controllerIo.begin();
 }
 
-int i = 0;
 void loop() 
 {
     //myusb.Task();
     usbMIDI.read();
-
-    if (++i % 500000 == 0) 
-    {
-      Serial.print(".");
-    }
+    controllerIo.task();
 }

@@ -1,6 +1,6 @@
 #include "VoiceController.h"
 
-VoiceController::VoiceController() : 
+VoiceController::VoiceController(SynthConfiguration *configuration) :
     patch0(voicePool[0].getOutput(), 0, mixer1, 0),
     patch1(voicePool[1].getOutput(), 0, mixer1, 1),
     patch2(voicePool[2].getOutput(), 0, mixer1, 2),
@@ -14,12 +14,17 @@ VoiceController::VoiceController() :
     patchM1(mixer1, 0, masterMix, 0),
     patchM2(mixer2, 0, masterMix, 1)
 {
-    for (int i = 0; i < 4; i++) {
+    _synthConfiguration = configuration;
+
+    for (int i = 0; i < 4; i++) 
+    {
         mixer1.gain(i, 1.0f);
+        mixer2.gain(i, 1.0f);
     }
 
-    for (int i = 0; i < 4; i++) {
-        mixer2.gain(i, 1.0f);
+    for (int i = 0; i < MAX_VOICES; i++) 
+    {
+        voicePool[i].setSynthConfiguration(_synthConfiguration);
     }
 
     masterMix.gain(0, 1.0f); 
@@ -34,6 +39,28 @@ void VoiceController::setWaveSetters(WaveSetter** setters)
 
     for(int i = 0; i < MAX_VOICES; i++) {
         voicePool[i].setWave(waveSetters[currentSetterIndex]);
+    }
+}
+
+void VoiceController::setWaveSetter(int waveSetter) 
+{
+    currentSetterIndex = waveSetter;
+
+    for(int i = 0; i < MAX_VOICES; i++) 
+    {
+        voicePool[i].setWave(waveSetters[currentSetterIndex]);
+    }
+}
+
+void VoiceController::onSynthConfigurationChanged(      
+        bool waveFormChanged, 
+        bool waveFormParamsChanged, 
+        bool envelopeChanged, 
+        bool volumeChange) 
+{
+    for(int i = 0; i < MAX_VOICES; i++) 
+    {
+        voicePool[i].onSynthConfigurationChanged(waveFormChanged, waveFormChanged, envelopeChanged, volumeChange);
     }
 }
 
