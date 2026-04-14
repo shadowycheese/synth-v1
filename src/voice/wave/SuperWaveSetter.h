@@ -5,43 +5,52 @@
 #include "WaveSetter.h"
 #include "../../SynthConfiguration.h"
 
-class SuperWaveSetter : public WaveSetter {
+class SuperWaveSetter : public WaveSetter
+{
 public:
     SuperWaveSetter() {};
 
-    virtual void configure(float frequency, float amplitude, bool restart, SynthConfiguration *configuration, AudioSynthWaveform *waveForms)
-    {    
-        Serial.printf("configure freq: %0.3f, volume: %0.3f\n",frequency, amplitude);
+    virtual char *name()
+    {
+        return "SuperWaveSetter";
+    }
+
+    virtual void configure(float frequency, float amplitude, bool restart, WaveConfiguration *configuration, AudioSynthWaveform *waveForms)
+    {
+        Serial.printf("configure freq: %0.3f, volume: %0.3f, detune %0.3f\n", frequency, amplitude, configuration->detune);
 
         waveForms[0].frequency(frequency);
-        waveForms[0].amplitude(amplitude);
 
-        if (restart) 
+        if (restart)
         {
-            waveForms[0].begin(configuration -> waveForm);
+            waveForms[0].amplitude(amplitude);
+            waveForms[0].begin(configuration->mainWaveForm);
         }
 
         float lf = frequency;
         float rf = frequency;
 
-        for(int i = 0; i < 2; i++) 
+        for (int i = 0; i < 3; i++)
         {
             int l = 1 + (i * 2);
             int r = l + 1;
 
-            lf /= configuration -> detune;
-            rf *= configuration -> detune;
-            amplitude *= 0.8;
-
-            waveForms[l].begin(configuration -> waveForm);
-            waveForms[r].begin(configuration -> waveForm);
-
+            lf /= configuration->detune;
+            rf *= configuration->detune;
+            amplitude *= 0.7;
             waveForms[l].frequency(lf);
-            waveForms[l].amplitude(amplitude);
-
             waveForms[r].frequency(rf);
-            waveForms[r].amplitude(amplitude);
-        }    
+
+            if (restart)
+            {
+                waveForms[l].amplitude(amplitude);
+                waveForms[r].amplitude(amplitude);
+                waveForms[l].begin(configuration->detuneWaveForm);
+                waveForms[r].begin(configuration->detuneWaveForm);
+            }
+
+            Serial.printf("left freq: %0.3f, right freq: %0.3f amplitude: %0.3f\n", lf, rf, amplitude);
+        }
     }
 };
 

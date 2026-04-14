@@ -5,27 +5,33 @@
 #include "WaveSetter.h"
 #include "../../SynthConfiguration.h"
 
-class SimpleWaveSetter : public WaveSetter {
+class SimpleWaveSetter : public WaveSetter
+{
 public:
     SimpleWaveSetter() {
     };
 
-    virtual void configure(float frequency, float amplitude, bool restart, SynthConfiguration *configuration, AudioSynthWaveform *waveForms)
+    virtual char *name()
     {
-        Serial.printf("configure freq: %0.3f, volume: %0.3f\n",frequency, amplitude);
+        return "SimpleWaveSetter";
+    }
+
+    virtual void configure(float frequency, float amplitude, bool restart, WaveConfiguration *configuration, AudioSynthWaveform *waveForms)
+    {
+        Serial.printf("configure freq: %0.3f, volume: %0.3f\n", frequency, amplitude);
 
         waveForms[0].frequency(frequency);
         waveForms[0].amplitude(amplitude);
 
-        if (restart) 
+        if (restart)
         {
-            waveForms[0].begin(configuration -> waveForm);
+            waveForms[0].begin(configuration->mainWaveForm);
         }
 
-        for(int i = 1; i < 7; i++) 
+        for (int i = 1; i < 7; i++)
         {
             waveForms[i].amplitude(0);
-        }    
+        }
     }
 };
 

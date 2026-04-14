@@ -2,13 +2,16 @@
 #define WAVESETTER_H
 
 #include <Audio.h>
-#include "../../SynthConfiguration.h"
+#include "WaveConfiguration.h"
 
-class WaveSetter {
+class WaveSetter
+{
 public:
     virtual ~WaveSetter() {};
 
-    virtual void configure(float frequency, float amplitude, bool restart, SynthConfiguration *configuration, AudioSynthWaveform *waveForms) = 0;
+    virtual void configure(float frequency, float amplitude, bool restart, WaveConfiguration *configuration, AudioSynthWaveform *waveForms) = 0;
+
+    virtual char *name() = 0;
 };
 
 #endif

@@ -3,31 +3,32 @@
 #include "wave/WaveSetter.h"
 
 // Constructor: This is where the internal "patching" happens
-Voice::Voice() : 
-    patch1(waveforms[0], 0, mixer1, 0),
-    patch2(waveforms[1], 0, mixer1, 1),
-    patch3(waveforms[2], 0, mixer1, 2),
-    patch4(waveforms[3], 0, mixer1, 3),
+Voice::Voice() : patch1(waveforms[0], 0, mixer1, 0),
+                 patch2(waveforms[1], 0, mixer1, 1),
+                 patch3(waveforms[2], 0, mixer1, 2),
+                 patch4(waveforms[3], 0, mixer1, 3),
 
-    patch5(waveforms[4], 0, mixer2, 0),
-    patch6(waveforms[5], 0, mixer2, 1),
-    patch7(waveforms[6], 0, mixer2, 2),
+                 patch5(waveforms[4], 0, mixer2, 0),
+                 patch6(waveforms[5], 0, mixer2, 1),
+                 patch7(waveforms[6], 0, mixer2, 2),
 
-    patchM1(mixer1, 0, voiceMix, 0),
-    patchM2(mixer2, 0, voiceMix, 1),
+                 patchM1(mixer1, 0, voiceMix, 0),
+                 patchM2(mixer2, 0, voiceMix, 1),
 
-    patchEnv(waveforms[0], 0, envelope1, 0) 
+                 patchEnv(voiceMix, 0, envelope1, 0)
 {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         mixer1.gain(i, 1.0f);
     }
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         mixer2.gain(i, 1.0f);
     }
 
-    voiceMix.gain(0, 1.0f); 
-    voiceMix.gain(1, 1.0f); 
+    voiceMix.gain(0, 1.0f);
+    voiceMix.gain(1, 1.0f);
 
     envelope1.attack(10);
     envelope1.decay(50);
@@ -35,19 +36,14 @@ Voice::Voice() :
     envelope1.release(300);
 }
 
-void Voice::setWave(WaveSetter *setter) 
-{
-    waveSetter = setter;
-}
-
-void Voice::noteOn(byte note, float frequency, float velocity) 
+void Voice::noteOn(byte note, float frequency, float velocity)
 {
     _frequency = frequency;
-    _amplitude = 0.3;
+    _amplitude = 0.14;
 
-    if (waveSetter) 
+    if (waveSetter)
     {
-        waveSetter->configure(frequency, _amplitude, true, _synthConfiguration, waveforms);
+        waveSetter->configure(frequency, _amplitude, true, &waveConfiguration, waveforms);
     }
 
     envelope1.noteOn();
@@ -56,29 +52,64 @@ void Voice::noteOn(byte note, float frequency, float velocity)
     _timestamp = millis();
 }
 
-void Voice::noteOff() 
+void Voice::noteOff()
 {
     envelope1.noteOff();
 }
 
-void Voice::onSynthConfigurationChanged(
-        bool waveFormChanged, 
-        bool waveFormParamsChanged, 
-        bool envelopeChanged, 
-        bool volumeChange) 
+void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, int changeFlags)
 {
-    envelope1.attack(_synthConfiguration -> attack);
-    envelope1.decay(_synthConfiguration -> decay);
-    envelope1.sustain(_synthConfiguration -> sustain);
-    envelope1.release(_synthConfiguration -> release);
-
-    if (waveSetter) 
+    if (envelopeChanged(changeFlags))
     {
-        waveSetter -> configure(_frequency, _amplitude, false, _synthConfiguration, waveforms);
+        envelope1.attack(configuration->attack);
+        envelope1.decay(configuration->decay);
+        envelope1.sustain(configuration->sustain);
+        envelope1.release(configuration->release);
+    }
+
+    if (volumeChanged(changeFlags))
+    {
+        float voiceGain = configuration->voiceGain;
+
+        for (int i = 0; i < 4; i++)
+        {
+            mixer1.gain(i, voiceGain);
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            mixer2.gain(i, voiceGain);
+        }
+    }
+
+    if (voiceParametersChanged(changeFlags))
+    {
+        waveConfiguration.detune = configuration->detune;
+    }
+
+    bool reset = false;
+
+    if (waveFormChanged(changeFlags))
+    {
+        waveConfiguration.mainWaveForm = configuration->mainWaveForm;
+        waveConfiguration.detuneWaveForm = configuration->detuneWaveForm;
+
+        waveSetter = configuration->waveSetter;
+
+        Serial.printf("Waveform: %s, %d\n", waveSetter->name(), waveConfiguration.mainWaveForm);
+
+        reset = true;
+    }
+
+    if (envelope1.isActive() && (waveFormChanged(changeFlags) || voiceParametersChanged(changeFlags)))
+    {
+        Serial.printf("Set+: %s, %d\n", waveSetter->name(), waveConfiguration.mainWaveForm);
+
+        waveSetter->configure(_frequency, _amplitude, reset, &waveConfiguration, waveforms);
     }
 }
 
-bool Voice::isPlaying() 
+bool Voice::isPlaying()
 {
     return envelope1.isActive();
 }

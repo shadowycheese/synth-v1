@@ -8,13 +8,14 @@
 #include "../Constants.h"
 #include "wave/WaveSetter.h"
 
-class VoiceController : public SynthConfigurationListener {
+class VoiceController : public SynthConfigurationListener
+{
 public:
-    VoiceController(SynthConfiguration *configuration);
+    VoiceController();
 
-    AudioStream& getOutput() { return masterMix; }
+    AudioStream &getOutput() { return masterMix; }
 
-    void setWaveSetters(WaveSetter **setters);
+    void setWaveSetters(WaveSetter *setters[]);
 
     void noteOn(byte note, byte velocity);
 
@@ -24,11 +25,7 @@ public:
 
     void setWaveSetter(int setter);
 
-    void onSynthConfigurationChanged(      
-        bool waveFormChanged, 
-        bool waveFormParamsChanged, 
-        bool envelopeChanged, 
-        bool volumeChange);
+    void onSynthConfigurationChanged(SynthConfiguration *configuration, int changeFlags);
 
 private:
     Voice voicePool[MAX_VOICES];
@@ -42,14 +39,9 @@ private:
 
     AudioConnection patchM1, patchM2, patchMaster;
 
-    WaveSetter** waveSetters;
-    int currentSetterIndex = 0; 
-
     byte notesVoiceMap[256];
 
     int findOldestVoice(byte note);
-
-    SynthConfiguration *_synthConfiguration;
 };
 
 #endif
