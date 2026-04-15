@@ -34,9 +34,13 @@ void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configurat
         }
     }
 
+    voiceConfiguration.copy(configuration);
+
+    voiceConfigurationVersion++;
+
     for (int i = 0; i < MAX_VOICES; i++)
     {
-        voicePool[i].onSynthConfigurationChanged(configuration, changeFlags);
+        pendingChanges[i] |= changeFlags;
     }
 }
 
@@ -48,7 +52,7 @@ void VoiceController::noteOn(byte note, byte velocity)
     {
         notesVoiceMap[note] = voice;
 
-        voicePool[voice].noteOn(note, MIDI_FREQ(note), ((float)velocity) / 128);
+        voicePool[voice].noteOn(note, MIDI_FREQ(note), 0.2 + (0.8f * ((float)velocity) / 128));
     }
 }
 
@@ -89,4 +93,36 @@ int VoiceController::findOldestVoice(byte note)
     }
 
     return oldest;
+}
+
+void VoiceController::task()
+{
+    uint32_t m = millis();
+
+    // Handle millis wrapping
+    if ((nextVoiceUpdateTime - m) > 100000)
+    {
+        nextVoiceUpdateTime = m + 2;
+        return;
+    }
+
+    if (m < nextVoiceUpdateTime)
+    {
+        return;
+    }
+
+    int voice = nextVoiceUpdateTime++;
+
+    nextVoiceToUpdate &= 7;
+
+    nextVoiceUpdateTime = m + 2;
+
+    if (voiceVersions[voice] != synthConfigurationVersion)
+    {
+        voicePool[voice].onSynthConfigurationChanged(&voiceConfiguration, pendingChanges[voice]);
+
+        voiceVersions[voice] = synthConfigurationVersion;
+
+        pendingChanges[voice] = 0;
+    }
 }

@@ -2,7 +2,6 @@
 #include <Wire.h>
 #include <SPI.h>
 #include "voice/VoiceController.h"
-#include "voice/wave/Waves.h"
 #include "USBHost_t36.h"
 #include "Constants.h"
 #include "io/ControllerIo.h"
@@ -67,9 +66,15 @@ void setup()
     controllerIo.begin();
 }
 
+int loops = 0;
 void loop()
 {
+    if ((loops++ % 500000) == 0)
+    {
+        Serial.printf("CPU Usage: %02.02f%% (Max %02.02f%%)\n", AudioProcessorUsage(), AudioProcessorUsageMax());
+    }
     // myusb.Task();
     usbMIDI.read();
     controllerIo.task();
+    voiceController.task();
 }

@@ -5,10 +5,6 @@
 #include "ControllerIoListener.h"
 #include "../SynthConfiguration.h"
 #include "../SynthConfigurationListener.h"
-#include "../voice/wave/Waves.h"
-
-SimpleWaveSetter simpleWaveSetter;
-SuperWaveSetter superWaveSetter;
 
 class SynthConfigurationMapper : public ControllerIoListener
 {
@@ -48,10 +44,10 @@ private:
         &SynthConfigurationMapper::updateRelease,
         &SynthConfigurationMapper::updateDetune,
         &SynthConfigurationMapper::updateMainWaveForm,
-        &SynthConfigurationMapper::updateWaveSetter,
+        &SynthConfigurationMapper::updateOscillators,
         &SynthConfigurationMapper::updateVoiceGain,
         &SynthConfigurationMapper::updateMixerGain,
-        &SynthConfigurationMapper::updateMasterGain,
+        &SynthConfigurationMapper::updateResonance,
     };
 
     Func getIoHandler(int group, int input)
@@ -209,17 +205,31 @@ private:
         return 0;
     }
 
-    int updateWaveSetter(int value)
+    int updateOscillators(int value)
     {
-        WaveSetter *newValue = value < 512.0f
-                                   ? (WaveSetter *)&simpleWaveSetter
-                                   : (WaveSetter *)&superWaveSetter;
-
-        if (newValue != _localSynthConfiguration.waveSetter)
+        int oscillators = -1;
+        if (value < 200)
         {
-            _localSynthConfiguration.waveSetter = newValue;
+            oscillators = 1;
+        }
+        else if (value < 400)
+        {
+            oscillators = 3;
+        }
+        else if (value < 600)
+        {
+            oscillators = 5;
+        }
+        else if (value < 800)
+        {
+            oscillators = 7;
+        }
 
-            return WAVEFORM_CHANGED;
+        if (oscillators != _localSynthConfiguration.oscillators)
+        {
+            _localSynthConfiguration.oscillators = oscillators;
+
+            return VOICE_CONFIGURAITON_CHANGED;
         }
 
         return 0;
@@ -234,7 +244,21 @@ private:
         {
             _localSynthConfiguration.detune = newValue;
 
-            return VOICE_PARAMS_CHANGED;
+            return VOICE_CONFIGURAITON_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateResonance(int value)
+    {
+        float newValue = 1.8f * (value / 1023.0f);
+
+        if (newValue != _localSynthConfiguration.resonance)
+        {
+            _localSynthConfiguration.resonance = newValue;
+
+            return VOICE_CONFIGURAITON_CHANGED;
         }
 
         return 0;
@@ -260,7 +284,7 @@ private:
         }
         else
         {
-            return WAVEFORM_SAWTOOTH_REVERSE;
+            return WAVEFORM_ARBITRARY;
         }
     }
 };

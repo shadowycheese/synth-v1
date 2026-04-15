@@ -3,7 +3,6 @@
 
 #include <Audio.h>
 #include "Constants.h"
-#include "voice/wave/WaveSetter.h"
 
 class SynthConfiguration
 {
@@ -13,7 +12,6 @@ public:
     // Waveform parameters
     int mainWaveForm = WAVEFORM_SINE;
     int detuneWaveForm = WAVEFORM_SINE;
-    WaveSetter *waveSetter;
 
     // Envelope parameters
     float attack = 10;
@@ -23,6 +21,8 @@ public:
 
     // Voice parameters
     float detune = 0;
+    float resonance = 0;
+    int oscillators = 3;
 
     // Volume parameters
     float masterVolume = 1.0f;
@@ -34,7 +34,6 @@ public:
     {
         mainWaveForm = source->mainWaveForm;
         detuneWaveForm = source->detuneWaveForm;
-        waveSetter = source->waveSetter;
 
         attack = source->attack;
         decay = source->decay;
@@ -42,6 +41,8 @@ public:
         release = source->release;
 
         detune = source->detune;
+        oscillators = source->oscillators;
+        resonance = source->resonance;
 
         masterVolume = source->masterVolume;
         filterGain = source->filterGain;

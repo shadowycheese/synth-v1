@@ -6,7 +6,6 @@
 #include "../SynthConfiguration.h"
 #include "../SynthConfigurationListener.h"
 #include "../Constants.h"
-#include "wave/WaveSetter.h"
 
 class VoiceController : public SynthConfigurationListener
 {
@@ -15,15 +14,13 @@ public:
 
     AudioStream &getOutput() { return masterMix; }
 
-    void setWaveSetters(WaveSetter *setters[]);
-
     void noteOn(byte note, byte velocity);
 
     void noteOff(byte note, byte velocity);
 
     void begin();
 
-    void setWaveSetter(int setter);
+    void task();
 
     void onSynthConfigurationChanged(SynthConfiguration *configuration, int changeFlags);
 
@@ -42,6 +39,15 @@ private:
     byte notesVoiceMap[256];
 
     int findOldestVoice(byte note);
+
+    // Voice updating
+    SynthConfiguration voiceConfiguration;
+    int voiceConfigurationVersion;
+    uint32_t nextVoiceUpdateTime;
+    int nextVoiceToUpdate;
+    int synthConfigurationVersion;
+    int voiceVersions[MAX_VOICES];
+    int pendingChanges[MAX_VOICES];
 };
 
 #endif
