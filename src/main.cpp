@@ -19,8 +19,8 @@ SynthConfigurationMapper configurationMapper(&synthConfiguration, &voiceControll
 ControllerIo controllerIo(&configurationMapper);
 
 USBHost myusb;
-USBHub hunb(myusb);
-MIDIDevice midi1(myusb);
+USBHub hub1(myusb);
+MIDIDevice usbMidi1(myusb);
 
 AudioConnection mainPatch(voiceController.getOutput(), 0, i2s1, 0);
 
@@ -34,11 +34,14 @@ void myNoteOn(byte channel, byte note, byte velocity)
 void myNoteOff(byte channel, byte note, byte velocity)
 {
     Serial.printf("Off: Channel %d, note %d, velocity %d\n", channel, note, velocity);
+
     voiceController.noteOff(note, velocity);
 }
 
 void setup()
 {
+    Serial.begin(115200);
+
     // Allocate memory for the audio engine
     AudioMemory(200);
 
@@ -60,21 +63,48 @@ void setup()
 
     myusb.begin();
 
-    usbMIDI.setHandleNoteOn(myNoteOn);
-    usbMIDI.setHandleNoteOff(myNoteOff);
+    usbMidi1.setHandleNoteOn(myNoteOn);
+    usbMidi1.setHandleNoteOff(myNoteOff);
 
     controllerIo.begin();
 }
 
-int loops = 0;
 void loop()
 {
-    if ((loops++ % 500000) == 0)
+    static int loops = 0;
+    static bool connected = false;
+    static bool disconnected = false;
+
+    if ((loops++ % 5000000) == 0)
     {
         Serial.printf("CPU Usage: %02.02f%% (Max %02.02f%%)\n", AudioProcessorUsage(), AudioProcessorUsageMax());
     }
-    // myusb.Task();
-    usbMIDI.read();
+
+    myusb.Task();
+
+    if (usbMidi1)
+    {
+        // This will print ONLY when the keyboard is physically recognized
+        if (!connected)
+        {
+            Serial.println("Keyboard Connected!");
+            connected = true;
+        }
+    }
+    else
+    {
+        if (!disconnected)
+        {
+            Serial.println("Keyboard NOT detected. Check cable/hub.");
+            disconnected = true;
+        }
+
+        return;
+    }
+
+    while (usbMidi1.read())
+        ;
+
     controllerIo.task();
     voiceController.task();
 }

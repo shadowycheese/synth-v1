@@ -21,6 +21,8 @@ VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1,
 
     masterMix.gain(0, 1.0f);
     masterMix.gain(1, 1.0f);
+
+    nextVoiceUpdateTime = millis();
 }
 
 void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configuration, int changeFlags)
@@ -111,17 +113,18 @@ void VoiceController::task()
         return;
     }
 
-    int voice = nextVoiceUpdateTime++;
+    int voice = nextVoiceToUpdate++;
 
     nextVoiceToUpdate &= 7;
 
     nextVoiceUpdateTime = m + 2;
 
-    if (voiceVersions[voice] != synthConfigurationVersion)
+    if (voiceVersions[voice] != voiceConfigurationVersion)
     {
+        Serial.printf("%d %02x\n", voice, pendingChanges[voice]);
         voicePool[voice].onSynthConfigurationChanged(&voiceConfiguration, pendingChanges[voice]);
 
-        voiceVersions[voice] = synthConfigurationVersion;
+        voiceVersions[voice] = voiceConfigurationVersion;
 
         pendingChanges[voice] = 0;
     }

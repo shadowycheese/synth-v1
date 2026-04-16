@@ -45,7 +45,6 @@ private:
     int voiceConfigurationVersion;
     uint32_t nextVoiceUpdateTime;
     int nextVoiceToUpdate;
-    int synthConfigurationVersion;
     int voiceVersions[MAX_VOICES];
     int pendingChanges[MAX_VOICES];
 };

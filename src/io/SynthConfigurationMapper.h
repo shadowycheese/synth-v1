@@ -19,6 +19,7 @@ public:
     {
         if (_changeFlags)
         {
+
             _synthConfiguration->copy(&_localSynthConfiguration);
 
             _synthConfigurationListener->onSynthConfigurationChanged(_synthConfiguration, _changeFlags);

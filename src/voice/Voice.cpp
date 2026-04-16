@@ -90,7 +90,7 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, int c
         _voiceConfiguration.oscillators = configuration->oscillators;
         _voiceConfiguration.resonance = configuration->resonance;
 
-        ladderFilter.resonance(_voiceConfiguration.resonance);
+        // ladderFilter.resonance(_voiceConfiguration.resonance);
     }
 
     bool reset = false;
@@ -125,7 +125,7 @@ void Voice::configure(float frequency, float amplitude, bool restart)
                   _voiceConfiguration.detune,
                   _voiceConfiguration.resonance);
 
-    ladderFilter.frequency(frequency);
+    // ladderFilter.frequency(frequency);
 
     if (_voiceConfiguration.oscillators < 0)
     {
