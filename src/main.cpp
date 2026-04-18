@@ -24,18 +24,47 @@ MIDIDevice usbMidi1(myusb);
 
 AudioConnection mainPatch(voiceController.getOutput(), 0, i2s1, 0);
 
-void myNoteOn(byte channel, byte note, byte velocity)
+void midiNoteOn(byte channel, byte note, byte velocity)
 {
     Serial.printf("On: Channel %d, note %d, velocity %d\n", channel, note, velocity);
 
     voiceController.noteOn(note, velocity);
 }
 
-void myNoteOff(byte channel, byte note, byte velocity)
+void midiNoteOff(byte channel, byte note, byte velocity)
 {
     Serial.printf("Off: Channel %d, note %d, velocity %d\n", channel, note, velocity);
 
     voiceController.noteOff(note, velocity);
+}
+
+void midiPitchChange(byte channel, int pitch)
+{
+    Serial.printf("Pitch: Channel %d, pitch %d\n", channel, pitch);
+
+    controllerIo.midiControl(MIDI_INPUT_PITCH, pitch);
+}
+
+void midiControlChange(byte channel, byte control, byte value)
+{
+    Serial.printf("Control: Channel %d, control %d, value %d\n", channel, control, value);
+
+    if (control == 7)
+    {
+        controllerIo.midiControl(MIDI_INPUT_RESONANCE, 8 * (int)value);
+    }
+    else if (control == 74)
+    {
+        controllerIo.midiControl(MIDI_INPUT_DETUNE, 8 * (int)value);
+    }
+    else if (control == 71)
+    {
+        controllerIo.midiControl(MIDI_INPUT_PW, 8 * (int)value);
+    }
+    else if (control == 72)
+    {
+        controllerIo.midiControl(MIDI_INPUT_WAVEFORM, 8 * (int)value);
+    }
 }
 
 void setup()
@@ -50,8 +79,6 @@ void setup()
     sgtl5000.lineOutLevel(31);
     sgtl5000.enable();
 
-    delay(600);
-
     sgtl5000.unmuteLineout();
 
     for (int level = 31; level >= 21; level--)
@@ -63,8 +90,10 @@ void setup()
 
     myusb.begin();
 
-    usbMidi1.setHandleNoteOn(myNoteOn);
-    usbMidi1.setHandleNoteOff(myNoteOff);
+    usbMidi1.setHandleNoteOn(midiNoteOn);
+    usbMidi1.setHandleNoteOff(midiNoteOff);
+    usbMidi1.setHandlePitchChange(midiPitchChange);
+    usbMidi1.setHandleControlChange(midiControlChange);
 
     controllerIo.begin();
 }
@@ -75,7 +104,7 @@ void loop()
     static bool connected = false;
     static bool disconnected = false;
 
-    if ((loops++ % 5000000) == 0)
+    if ((loops++ % 3000000) == 0)
     {
         Serial.printf("CPU Usage: %02.02f%% (Max %02.02f%%)\n", AudioProcessorUsage(), AudioProcessorUsageMax());
     }

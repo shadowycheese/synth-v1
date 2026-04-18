@@ -10,7 +10,7 @@ public:
     SynthConfiguration() {}
 
     // Waveform parameters
-    int mainWaveForm = WAVEFORM_SINE;
+    uint8_t mainWaveForm = WAVEFORM_SINE;
     int detuneWaveForm = WAVEFORM_SINE;
 
     // Envelope parameters
@@ -20,9 +20,13 @@ public:
     float release = 300;
 
     // Voice parameters
+    float pitch = 0;
     float detune = 0;
     float resonance = 0;
-    int oscillators = 3;
+    float amplitudes[4];
+    float noiseAmplitude;
+    float pulseWidth;
+    bool manualCutoff;
 
     // Volume parameters
     float masterVolume = 1.0f;
@@ -41,13 +45,22 @@ public:
         release = source->release;
 
         detune = source->detune;
-        oscillators = source->oscillators;
         resonance = source->resonance;
+        pitch = source->pitch;
+        pulseWidth = source->pulseWidth;
+        manualCutoff = source->manualCutoff;
+
+        noiseAmplitude = source->noiseAmplitude;
+
+        for (int i = 0; i < 4; i++)
+        {
+            amplitudes[i] = source->amplitudes[i];
+        }
 
         masterVolume = source->masterVolume;
         filterGain = source->filterGain;
         mixerGain = source->mixerGain;
-        voiceGain = source->voiceGain;
+        voiceGain = source->mixerGain;
     }
 };
 

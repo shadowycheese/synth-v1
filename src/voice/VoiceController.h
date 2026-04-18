@@ -25,6 +25,9 @@ public:
     void onSynthConfigurationChanged(SynthConfiguration *configuration, int changeFlags);
 
 private:
+    void updateVoices();
+    void updateVoiceFilters();
+
     Voice voicePool[MAX_VOICES];
 
     AudioMixer4 mixer1;
@@ -39,6 +42,10 @@ private:
     byte notesVoiceMap[256];
 
     int findOldestVoice(byte note);
+
+    // Filter updating
+    int nextFilterToUpdate;
+    uint32_t nextFilterUpdateTime;
 
     // Voice updating
     SynthConfiguration voiceConfiguration;

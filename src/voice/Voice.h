@@ -21,16 +21,15 @@ public:
     uint32_t timestamp() { return _timestamp; };
     byte noteLastPlayed() { return _note; };
 
-    float frequency() { return _frequency; };
-    float amplitude() { return _amplitude; };
-
     void onSynthConfigurationChanged(SynthConfiguration *configuration, int changeFlags);
+    void updateFilter();
 
 private:
     AudioMixer4 mixer1;
     AudioMixer4 mixer2;
     AudioMixer4 voiceMix;
 
+    AudioAnalyzePeak analyze;
     AudioSynthWaveform waveforms[7];
     AudioSynthNoiseWhite noise;
     AudioFilterLadder ladderFilter;
@@ -43,15 +42,17 @@ private:
 
     AudioConnection patchFilter;
     AudioConnection patchEnv;
+    AudioConnection patchAnalyze;
 
     VoiceConfiguration _voiceConfiguration;
 
     uint32_t _timestamp;
     byte _note;
     float _frequency;
-    float _amplitude;
+    float _amplitudeScale;
+    uint32_t _iteration;
 
-    void configure(float frequency, float amplitude, bool restart);
+    void configure(bool restart);
 };
 
 #endif

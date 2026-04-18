@@ -15,8 +15,9 @@ Voice::Voice() : patch1(waveforms[0], 0, mixer1, 0),
                  patchM1(mixer1, 0, voiceMix, 0),
                  patchM2(mixer2, 0, voiceMix, 1),
 
-                 // patchFilter(voiceMix, ladderFilter),
-                 patchEnv(voiceMix, 0, envelope1, 0)
+                 patchFilter(voiceMix, ladderFilter),
+                 patchEnv(ladderFilter, 0, envelope1, 0),
+                 patchAnalyze(envelope1, 0, analyze, 0)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -28,7 +29,7 @@ Voice::Voice() : patch1(waveforms[0], 0, mixer1, 0),
         mixer2.gain(i, 1.0f);
     }
 
-    ladderFilter.octaveControl(1);
+    ladderFilter.octaveControl(4);
 
     voiceMix.gain(0, 1.0f);
     voiceMix.gain(1, 1.0f);
@@ -41,12 +42,12 @@ Voice::Voice() : patch1(waveforms[0], 0, mixer1, 0),
 
 void Voice::noteOn(byte note, float frequency, float amplitude)
 {
-    float divider = _voiceConfiguration.oscillators <= 0 ? 1.0 : (float)_voiceConfiguration.oscillators;
+    float divider = _voiceConfiguration.activeOscilators <= 0 ? 1.0 : (float)_voiceConfiguration.activeOscilators;
 
+    _amplitudeScale = amplitude / divider;
     _frequency = frequency;
-    _amplitude = amplitude / divider;
 
-    configure(frequency, _amplitude, true);
+    configure(true);
 
     envelope1.noteOn();
 
@@ -57,6 +58,20 @@ void Voice::noteOn(byte note, float frequency, float amplitude)
 void Voice::noteOff()
 {
     envelope1.noteOff();
+}
+
+void Voice::updateFilter()
+{
+    if (analyze.available())
+    {
+        int angle = _iteration++ % 720;
+
+        float radians = (angle / 720) * 6.28318;
+
+        float dynamicCutoff = _frequency * 1.75f + (500 * sin(radians));
+        ladderFilter.frequency(dynamicCutoff);
+        ladderFilter.resonance(_voiceConfiguration.resonance);
+    }
 }
 
 void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, int changeFlags)
@@ -86,28 +101,23 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, int c
 
     if (voiceConfigurationChanged(changeFlags))
     {
-        _voiceConfiguration.detune = configuration->detune;
-        _voiceConfiguration.oscillators = configuration->oscillators;
-        _voiceConfiguration.resonance = configuration->resonance;
-
-        // ladderFilter.resonance(_voiceConfiguration.resonance);
+        _voiceConfiguration.copyVoiceConfiguration(configuration);
     }
 
     bool reset = false;
 
     if (waveFormChanged(changeFlags))
     {
-        _voiceConfiguration.mainWaveForm = configuration->mainWaveForm;
-        _voiceConfiguration.detuneWaveForm = configuration->mainWaveForm;
+        _voiceConfiguration.copyWaveFormConfiguration(configuration);
 
-        Serial.printf("Waveform: %d, Oscilators: %d\n", _voiceConfiguration.mainWaveForm, _voiceConfiguration.oscillators);
+        Serial.printf("Waveform: %d, Oscilators: %d\n", _voiceConfiguration.mainWaveForm, _voiceConfiguration.activeOscilators);
 
         reset = true;
     }
 
     if (envelope1.isActive() && (waveFormChanged(changeFlags) || voiceConfigurationChanged(changeFlags)))
     {
-        configure(_frequency, _amplitude, reset);
+        configure(reset);
     }
 }
 
@@ -116,42 +126,31 @@ bool Voice::isPlaying()
     return envelope1.isActive();
 }
 
-void Voice::configure(float frequency, float amplitude, bool restart)
+void Voice::configure(bool restart)
 {
-    Serial.printf("configure freq: %0.3f, volume: %0.3f, oscillators: %d, detune %0.5f, resonance %0.3f\n",
+    float frequency = _frequency * (1.0 + _voiceConfiguration.pitch);
+
+    Serial.printf("configure freq: %0.3f (%0.3f), volume: %0.3f, oscillators: %d, detune %0.5f, resonance %0.3f\n",
                   frequency,
-                  amplitude,
-                  _voiceConfiguration.oscillators,
+                  _frequency,
+                  _amplitudeScale,
+                  _voiceConfiguration.activeOscilators,
                   _voiceConfiguration.detune,
                   _voiceConfiguration.resonance);
-
-    // ladderFilter.frequency(frequency);
-
-    if (_voiceConfiguration.oscillators < 0)
-    {
-        for (int i = 0; i < 7; i++)
-        {
-            waveforms[i].amplitude(0.0);
-        }
-
-        noise.amplitude(amplitude);
-
-        return;
-    }
-
-    noise.amplitude(0);
     waveforms[0].frequency(frequency);
+    waveforms[0].pulseWidth(_voiceConfiguration.pulseWidth);
+
+    noise.amplitude(_amplitudeScale * _voiceConfiguration.noiseAmplitude);
+    waveforms[0].amplitude(_amplitudeScale * _voiceConfiguration.amplitudes[0]);
 
     if (restart)
     {
-        waveforms[0].amplitude(amplitude);
-        waveforms[0].begin(_voiceConfiguration.mainWaveForm);
+        waveforms[0].begin(_voiceConfiguration.waveform(_voiceConfiguration.mainWaveForm));
     }
 
     float lf = frequency;
     float rf = frequency;
 
-    int range = (_voiceConfiguration.oscillators - 1) / 2;
     int phase = 0;
 
     for (int i = 0; i < 3; i++)
@@ -162,31 +161,24 @@ void Voice::configure(float frequency, float amplitude, bool restart)
         lf /= _voiceConfiguration.detune;
         rf *= _voiceConfiguration.detune;
 
-        amplitude *= 0.7;
-
         phase += 6;
 
         waveforms[l].frequency(lf);
         waveforms[r].frequency(rf);
 
-        if (i < range)
-        {
-            Serial.printf("left freq: %0.3f, right freq: %0.3f amplitude: %0.3f\n", lf, rf, amplitude);
+        float amplitude = _amplitudeScale * _voiceConfiguration.amplitudes[i + 1];
 
-            if (restart)
-            {
-                waveforms[l].phase(-phase);
-                waveforms[r].phase(+phase);
-                waveforms[l].amplitude(amplitude);
-                waveforms[r].amplitude(amplitude);
-                waveforms[l].begin(_voiceConfiguration.detuneWaveForm);
-                waveforms[r].begin(_voiceConfiguration.detuneWaveForm);
-            }
-        }
-        else
+        Serial.printf("left freq: %0.3f, right freq: %0.3f amplitude: %0.3f\n", lf, rf, amplitude);
+
+        waveforms[l].amplitude(amplitude);
+        // waveforms[r].amplitude(amplitude);
+
+        if (restart)
         {
-            waveforms[l].amplitude(0);
-            waveforms[r].amplitude(0);
+            waveforms[l].phase(-phase);
+            waveforms[r].phase(+phase);
+            waveforms[l].begin(_voiceConfiguration.waveform(_voiceConfiguration.detuneWaveForm));
+            // waveforms[r].begin(_voiceConfiguration.waveform(_voiceConfiguration.detuneWaveForm));
         }
     }
 }

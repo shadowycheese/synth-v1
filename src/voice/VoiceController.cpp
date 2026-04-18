@@ -97,7 +97,32 @@ int VoiceController::findOldestVoice(byte note)
     return oldest;
 }
 
-void VoiceController::task()
+void VoiceController::updateVoiceFilters()
+{
+    uint32_t m = micros();
+
+    // Handle millis wrapping
+    if ((nextFilterUpdateTime - m) > 100000)
+    {
+        nextFilterUpdateTime = m + 100;
+        return;
+    }
+
+    if (m < nextVoiceUpdateTime)
+    {
+        return;
+    }
+
+    int voice = nextFilterToUpdate++;
+
+    nextFilterToUpdate &= 7;
+
+    nextFilterUpdateTime = m + 100;
+
+    voicePool[voice].updateFilter();
+}
+
+void VoiceController::updateVoices()
 {
     uint32_t m = millis();
 
@@ -121,11 +146,16 @@ void VoiceController::task()
 
     if (voiceVersions[voice] != voiceConfigurationVersion)
     {
-        Serial.printf("%d %02x\n", voice, pendingChanges[voice]);
         voicePool[voice].onSynthConfigurationChanged(&voiceConfiguration, pendingChanges[voice]);
 
         voiceVersions[voice] = voiceConfigurationVersion;
 
         pendingChanges[voice] = 0;
     }
+}
+
+void VoiceController::task()
+{
+    updateVoiceFilters();
+    updateVoices();
 }
