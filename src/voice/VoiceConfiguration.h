@@ -11,31 +11,43 @@ static int WaveFormMap[8] = {
     WAVEFORM_BANDLIMIT_SAWTOOTH,
     WAVEFORM_ARBITRARY};
 
+static float CENTS[4] = {
+    0.0f,
+    2.0f,
+    4.0f,
+    7.0f};
+
+static float SUPER_SAW_GAIN_OFFSET[4] = {
+    -0.3f,
+    0.1f,
+    0.3f,
+    0.6f,
+};
+
 class VoiceConfiguration
 {
 public:
     float detune;
-    int mainWaveForm;
-    int detuneWaveForm;
     float resonance;
     float pitch;
     float pulseWidth;
+    int waveforms[4];
     float amplitudes[4];
     float noiseAmplitude;
     int activeOscilators;
     bool manualCutoff;
 
-    int waveform(int waveform)
+    inline int audioWaveform(int waveform)
     {
-        return WaveFormMap[waveform];
+        return WaveFormMap[waveforms[waveform]];
     }
 
     void copyWaveFormConfiguration(SynthConfiguration *source)
     {
-        mainWaveForm = 1;
-        source->mainWaveForm;
-        detuneWaveForm = 3;
-        source->detuneWaveForm;
+        for (int i = 0; i < 4; i++)
+        {
+            waveforms[i] = source->waveforms[i];
+        }
     }
 
     void copyVoiceConfiguration(SynthConfiguration *source)

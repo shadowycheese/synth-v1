@@ -15,8 +15,9 @@ Voice::Voice() : patch1(waveforms[0], 0, mixer1, 0),
                  patchM1(mixer1, 0, voiceMix, 0),
                  patchM2(mixer2, 0, voiceMix, 1),
 
-                 patchFilter(voiceMix, ladderFilter),
-                 patchEnv(ladderFilter, 0, envelope1, 0),
+                 // patchFilter(voiceMix, ladderFilter),
+                 // patchEnv(ladderFilter, 0, envelope1, 0),
+                 patchFilter(voiceMix, envelope1),
                  patchAnalyze(envelope1, 0, analyze, 0)
 {
     for (int i = 0; i < 4; i++)
@@ -64,6 +65,7 @@ void Voice::updateFilter()
 {
     if (analyze.available())
     {
+        analyze.read();
         int angle = _iteration++ % 720;
 
         float radians = (angle / 720) * 6.28318;
@@ -110,7 +112,7 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, int c
     {
         _voiceConfiguration.copyWaveFormConfiguration(configuration);
 
-        Serial.printf("Waveform: %d, Oscilators: %d\n", _voiceConfiguration.mainWaveForm, _voiceConfiguration.activeOscilators);
+        Serial.printf("Waveform: %d, Oscilators: %d\n", _voiceConfiguration.audioWaveform(0), _voiceConfiguration.activeOscilators);
 
         reset = true;
     }
@@ -145,40 +147,48 @@ void Voice::configure(bool restart)
 
     if (restart)
     {
-        waveforms[0].begin(_voiceConfiguration.waveform(_voiceConfiguration.mainWaveForm));
+        waveforms[0].begin(_voiceConfiguration.audioWaveform(0));
     }
 
-    float lf = frequency;
-    float rf = frequency;
-
     int phase = 0;
+    float width = _voiceConfiguration.detune;
 
     for (int i = 0; i < 3; i++)
     {
         int l = 1 + (i * 2);
         int r = l + 1;
 
-        lf /= _voiceConfiguration.detune;
-        rf *= _voiceConfiguration.detune;
+        float centsR = CENTS[i + 1] * width * (DETUNE_MAX_SPREAD / 7.0f);
+        float centsL = -centsR;
 
-        phase += 6;
+        float lf = frequency * powf(2.0f, centsL / 1200.0f);
+        float rf = frequency * powf(2.0f, centsR / 1200.0f);
+
+        phase += 0.2f;
 
         waveforms[l].frequency(lf);
         waveforms[r].frequency(rf);
 
-        float amplitude = _amplitudeScale * _voiceConfiguration.amplitudes[i + 1];
+        float oscAmplitude = _voiceConfiguration.amplitudes[i + 1] * (1.0f + SUPER_SAW_GAIN_OFFSET[i + 1]);
 
-        Serial.printf("left freq: %0.3f, right freq: %0.3f amplitude: %0.3f\n", lf, rf, amplitude);
+        float amplitude = _amplitudeScale * oscAmplitude;
+
+        Serial.printf("left freq: %0.3f, right freq: %0.3f amplitude: %0.3f, waveform:%d\n",
+                      lf,
+                      rf, amplitude,
+                      _voiceConfiguration.audioWaveform(i + 1));
 
         waveforms[l].amplitude(amplitude);
-        // waveforms[r].amplitude(amplitude);
+        waveforms[r].amplitude(amplitude);
+        waveforms[l].phase(-phase);
+        waveforms[r].phase(+phase);
+        waveforms[l].pulseWidth(_voiceConfiguration.pulseWidth);
+        waveforms[r].pulseWidth(_voiceConfiguration.pulseWidth);
 
         if (restart)
         {
-            waveforms[l].phase(-phase);
-            waveforms[r].phase(+phase);
-            waveforms[l].begin(_voiceConfiguration.waveform(_voiceConfiguration.detuneWaveForm));
-            // waveforms[r].begin(_voiceConfiguration.waveform(_voiceConfiguration.detuneWaveForm));
+            waveforms[l].begin(_voiceConfiguration.audioWaveform(i + 1));
+            waveforms[r].begin(_voiceConfiguration.audioWaveform(i + 1));
         }
     }
 }

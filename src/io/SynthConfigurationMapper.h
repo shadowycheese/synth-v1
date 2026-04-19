@@ -31,18 +31,21 @@ public:
     {
         Func handler = getIoHandler(group, input);
 
+        Serial.printf("Change %d %d %d\n", group, input, value);
+
         _changeFlags |= (this->*handler)(value);
     }
 
 private:
     typedef int (SynthConfigurationMapper::*Func)(int);
 
-    Func midiInputs[5] = {
+    Func midiInputs[6] = {
         &SynthConfigurationMapper::updatePitch,
         &SynthConfigurationMapper::updateResonance,
         &SynthConfigurationMapper::updateDetune,
         &SynthConfigurationMapper::updatePulseWidth,
-        &SynthConfigurationMapper::updateWaveformAnalog,
+        &SynthConfigurationMapper::updateWaveform0,
+        &SynthConfigurationMapper::updateWaveform1,
     };
 
     Func mux1Inputs[16] = {
@@ -50,7 +53,7 @@ private:
         &SynthConfigurationMapper::updateDecay,
         &SynthConfigurationMapper::updateSustain,
         &SynthConfigurationMapper::updateRelease,
-        &SynthConfigurationMapper::updateMixerGain,
+        &SynthConfigurationMapper::updatePulseWidth,
         &SynthConfigurationMapper::updateNoise,
         &SynthConfigurationMapper::updateOscillators3,
         &SynthConfigurationMapper::updateOscillators2,
@@ -60,19 +63,18 @@ private:
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp};
 
     Func mux2Inputs[16] = {
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::updateWaveformBit0,
-        &SynthConfigurationMapper::updateWaveformBit1,
-        &SynthConfigurationMapper::updateWaveformBit2,
+        &SynthConfigurationMapper::updateAttack,
+        &SynthConfigurationMapper::updateDecay,
+        &SynthConfigurationMapper::updateSustain,
+        &SynthConfigurationMapper::updateRelease,
+        &SynthConfigurationMapper::updateMixerGain,
+        &SynthConfigurationMapper::updateDetune,
+        &SynthConfigurationMapper::updateResonance,
         &SynthConfigurationMapper::updateManualCutoff,
         &SynthConfigurationMapper::updatePulseWidth,
-        &SynthConfigurationMapper::updateDetune,
-        &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
@@ -213,52 +215,40 @@ private:
     }
 
     // Wave form
-    int updateWaveformAnalog(int value)
+    int updateWaveform0(int value)
+    {
+        return updateWaveform(0, value);
+    }
+
+    int updateWaveform1(int value)
+    {
+        updateWaveform(2, value);
+        updateWaveform(3, value);
+
+        return updateWaveform(1, value);
+    }
+
+    int updateWaveform2(int value)
+    {
+        return updateWaveform(2, value);
+    }
+
+    int updateWaveform3(int value)
+    {
+        return updateWaveform(3, value);
+    }
+
+    int updateWaveform(int waveform, int value)
     {
         int newValue = (value / 128) & 7;
 
-        if (newValue != _localSynthConfiguration.mainWaveForm)
+        Serial.printf("updateWaveform %d: %d  %d\n", waveform, _localSynthConfiguration.waveforms[waveform], newValue);
+
+        if (newValue != _localSynthConfiguration.waveforms[waveform])
         {
-            Serial.printf("Waveform %d\n", newValue);
+            Serial.printf("Waveform %d  %d\n", waveform, newValue);
 
-            _localSynthConfiguration.mainWaveForm = newValue;
-            _localSynthConfiguration.detuneWaveForm = newValue; // for now
-
-            return WAVEFORM_CHANGED;
-        }
-
-        return 0;
-    }
-
-    int updateWaveformBit0(int value)
-    {
-        return updateWaveformBit(value, 0);
-    }
-
-    int updateWaveformBit1(int value)
-    {
-        return updateWaveformBit(value, 1);
-    }
-
-    int updateWaveformBit2(int value)
-    {
-        return updateWaveformBit(value, 2);
-    }
-
-    int updateWaveformBit(int value, uint8_t bitPos)
-    {
-        uint8_t bit = (value > 512.0f) ? 1 << bitPos : 0;
-
-        int newValue = bit > 0
-                           ? _localSynthConfiguration.mainWaveForm | bit
-                           : _localSynthConfiguration.mainWaveForm & bit;
-
-        if (newValue != _localSynthConfiguration.mainWaveForm)
-        {
-            Serial.printf("Waveform (binary) Gain %d\n", newValue);
-
-            _localSynthConfiguration.mainWaveForm = newValue;
-            _localSynthConfiguration.detuneWaveForm = newValue; // for now
+            _localSynthConfiguration.waveforms[waveform] = newValue;
 
             return WAVEFORM_CHANGED;
         }
@@ -289,11 +279,13 @@ private:
 
     int updateNoise(int value)
     {
-        float newValue = getScaledValue(value, 24, 24);
+        float newValue = getScaledValue(value, 12, 12);
+
+        newValue *= newValue;
 
         if (newValue != _localSynthConfiguration.noiseAmplitude)
         {
-            Serial.printf("Noice %0.3f\n", newValue);
+            Serial.printf("Noise %0.3f\n", newValue);
 
             _localSynthConfiguration.noiseAmplitude = newValue;
 
@@ -305,7 +297,9 @@ private:
 
     int updateOscillators(int oscilator, int value)
     {
-        float newValue = getScaledValue(value, 24, 24);
+        float newValue = getScaledValue(value, 12, 12);
+
+        newValue *= newValue;
 
         if (newValue != _localSynthConfiguration.amplitudes[oscilator])
         {
@@ -337,11 +331,11 @@ private:
 
     int updateManualCutoff(int value)
     {
-        float newValue = value >= 512 ? 1 : 0;
+        bool newValue = value >= 512 ? 1 : 0;
 
         if (newValue != _localSynthConfiguration.manualCutoff)
         {
-            Serial.printf("Manual Cutoff = %0.3f\n", newValue);
+            Serial.printf("Manual Cutoff = %d\n", newValue);
 
             _localSynthConfiguration.manualCutoff = newValue;
 
@@ -353,7 +347,8 @@ private:
 
     int updateDetune(int value)
     {
-        float newValue = 1 + (value / 4095.0f);
+        float valueF = getScaledValue(value, 12, 12);
+        float newValue = valueF * valueF;
 
         if (newValue != _localSynthConfiguration.detune)
         {
@@ -369,7 +364,7 @@ private:
 
     int updateResonance(int value)
     {
-        float newValue = 1.8f * (value / 1023.0f);
+        float newValue = 1.8f * ((value * value) / 1023.0f);
 
         if (newValue != _localSynthConfiguration.resonance)
         {

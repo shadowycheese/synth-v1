@@ -4,7 +4,7 @@
 #include "voice/VoiceController.h"
 #include "USBHost_t36.h"
 #include "Constants.h"
-#include "io/ControllerIo.h"
+#include "io/SynthConfigurationOrchestrator.h"
 #include "io/SynthConfigurationMapper.h"
 
 AudioOutputI2S i2s1;
@@ -16,55 +16,33 @@ VoiceController voiceController;
 SynthConfiguration synthConfiguration;
 SynthConfigurationMapper configurationMapper(&synthConfiguration, &voiceController);
 
-ControllerIo controllerIo(&configurationMapper);
+SynthConfigurationOrchestrator configurationOrchestrator(&configurationMapper);
 
 USBHost myusb;
 USBHub hub1(myusb);
 MIDIDevice usbMidi1(myusb);
 
-AudioConnection mainPatch(voiceController.getOutput(), 0, i2s1, 0);
+AudioConnection leftPatch(voiceController.getLeft(), 0, i2s1, 0);
+AudioConnection rightPatch(voiceController.getRight(), 0, i2s1, 1);
 
 void midiNoteOn(byte channel, byte note, byte velocity)
 {
-    Serial.printf("On: Channel %d, note %d, velocity %d\n", channel, note, velocity);
-
     voiceController.noteOn(note, velocity);
 }
 
 void midiNoteOff(byte channel, byte note, byte velocity)
 {
-    Serial.printf("Off: Channel %d, note %d, velocity %d\n", channel, note, velocity);
-
     voiceController.noteOff(note, velocity);
 }
 
 void midiPitchChange(byte channel, int pitch)
 {
-    Serial.printf("Pitch: Channel %d, pitch %d\n", channel, pitch);
-
-    controllerIo.midiControl(MIDI_INPUT_PITCH, pitch);
+    configurationOrchestrator.midiHandler()->midiPitch(pitch);
 }
 
 void midiControlChange(byte channel, byte control, byte value)
 {
-    Serial.printf("Control: Channel %d, control %d, value %d\n", channel, control, value);
-
-    if (control == 7)
-    {
-        controllerIo.midiControl(MIDI_INPUT_RESONANCE, 8 * (int)value);
-    }
-    else if (control == 74)
-    {
-        controllerIo.midiControl(MIDI_INPUT_DETUNE, 8 * (int)value);
-    }
-    else if (control == 71)
-    {
-        controllerIo.midiControl(MIDI_INPUT_PW, 8 * (int)value);
-    }
-    else if (control == 72)
-    {
-        controllerIo.midiControl(MIDI_INPUT_WAVEFORM, 8 * (int)value);
-    }
+    configurationOrchestrator.midiHandler()->midiControl(control, value);
 }
 
 void setup()
@@ -95,21 +73,13 @@ void setup()
     usbMidi1.setHandlePitchChange(midiPitchChange);
     usbMidi1.setHandleControlChange(midiControlChange);
 
-    controllerIo.begin();
+    configurationOrchestrator.begin();
 }
 
-void loop()
+bool isKeyboardConnected()
 {
-    static int loops = 0;
     static bool connected = false;
     static bool disconnected = false;
-
-    if ((loops++ % 3000000) == 0)
-    {
-        Serial.printf("CPU Usage: %02.02f%% (Max %02.02f%%)\n", AudioProcessorUsage(), AudioProcessorUsageMax());
-    }
-
-    myusb.Task();
 
     if (usbMidi1)
     {
@@ -119,21 +89,45 @@ void loop()
             Serial.println("Keyboard Connected!");
             connected = true;
         }
+
+        return true;
     }
     else
     {
         if (!disconnected)
         {
-            Serial.println("Keyboard NOT detected. Check cable/hub.");
+            Serial.println("Keyboard NOT detected...");
             disconnected = true;
         }
 
+        return false;
+    }
+}
+
+inline void logAudioCPU()
+{
+    static int loops = 0;
+
+    if ((loops++ % 3000000) == 0)
+    {
+        Serial.printf("CPU Usage: %02.02f%% (Max %02.02f%%)\n", AudioProcessorUsage(), AudioProcessorUsageMax());
+    }
+}
+
+void loop()
+{
+    logAudioCPU();
+
+    myusb.Task();
+
+    if (!isKeyboardConnected())
+    {
         return;
     }
 
     while (usbMidi1.read())
         ;
 
-    controllerIo.task();
+    configurationOrchestrator.task();
     voiceController.task();
 }

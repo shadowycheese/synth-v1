@@ -10,8 +10,7 @@ public:
     SynthConfiguration() {}
 
     // Waveform parameters
-    uint8_t mainWaveForm = WAVEFORM_SINE;
-    int detuneWaveForm = WAVEFORM_SINE;
+    int waveforms[4];
 
     // Envelope parameters
     float attack = 10;
@@ -36,9 +35,6 @@ public:
 
     void copy(SynthConfiguration *source)
     {
-        mainWaveForm = source->mainWaveForm;
-        detuneWaveForm = source->detuneWaveForm;
-
         attack = source->attack;
         decay = source->decay;
         sustain = source->sustain;
@@ -54,6 +50,7 @@ public:
 
         for (int i = 0; i < 4; i++)
         {
+            waveforms[i] = source->waveforms[i];
             amplitudes[i] = source->amplitudes[i];
         }
 

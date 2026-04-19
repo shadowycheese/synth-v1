@@ -11,7 +11,10 @@ VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1,
                                      patch7(voicePool[7].getOutput(), 0, mixer2, 3),
 
                                      patchM1(mixer1, 0, masterMix, 0),
-                                     patchM2(mixer2, 0, masterMix, 1)
+                                     patchM2(mixer2, 0, masterMix, 1),
+
+                                     patchLeft(masterMix, 0, left, 0),
+                                     patchRight(masterMix, 0, right, 1)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -21,6 +24,9 @@ VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1,
 
     masterMix.gain(0, 1.0f);
     masterMix.gain(1, 1.0f);
+
+    left.gain(0, 0.5f);
+    right.gain(0, 0.5f);
 
     nextVoiceUpdateTime = millis();
 }
@@ -34,6 +40,15 @@ void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configurat
             mixer1.gain(i, configuration->mixerGain);
             mixer2.gain(i, configuration->mixerGain);
         }
+    }
+
+    if (voiceConfigurationChanged(changeFlags))
+    {
+        float panL = 1.0f; // + (configuration->detune - 0.5f);
+        float panR = 1.0f; // - (configuration->detune - 0.5f);
+
+        right.gain(0, panR);
+        left.gain(0, panL);
     }
 
     voiceConfiguration.copy(configuration);

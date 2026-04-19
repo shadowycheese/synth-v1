@@ -1,5 +1,5 @@
-#ifndef MUX_H
-#define MUX_H
+#ifndef MUXIO_H
+#define MUXIO_H
 
 #include "../Constants.h"
 #include "AnalogBuffer.h"
@@ -9,10 +9,10 @@
 
 const int MUX1_READ_PIN = 27;
 
-class Mux
+class MuxIo
 {
 public:
-    Mux(int id, int activePinCount)
+    MuxIo(int id, int activePinCount)
     {
         muxId = id;
         activePins = activePinCount;

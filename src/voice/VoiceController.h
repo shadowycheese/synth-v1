@@ -12,7 +12,8 @@ class VoiceController : public SynthConfigurationListener
 public:
     VoiceController();
 
-    AudioStream &getOutput() { return masterMix; }
+    AudioStream &getLeft() { return left; }
+    AudioStream &getRight() { return right; }
 
     void noteOn(byte note, byte velocity);
 
@@ -33,11 +34,15 @@ private:
     AudioMixer4 mixer1;
     AudioMixer4 mixer2;
     AudioMixer4 masterMix;
+    AudioMixer4 left;
+    AudioMixer4 right;
 
     AudioConnection patch0, patch1, patch2, patch3;
     AudioConnection patch4, patch5, patch6, patch7;
 
     AudioConnection patchM1, patchM2, patchMaster;
+
+    AudioConnection patchLeft, patchRight;
 
     byte notesVoiceMap[256];
 

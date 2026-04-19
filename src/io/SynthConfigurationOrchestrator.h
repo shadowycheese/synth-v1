@@ -1,8 +1,8 @@
-#ifndef CONTROLLERIO_H
-#define CONTROLLERIO_H
+#ifndef SYNTHCONFIGURATIONORCHESTRATOR_H
+#define SYNTHCONFIGURATIONORCHESTRATOR_H
 
 #include "../Constants.h"
-#include "Mux.h"
+#include "MuxIo.h"
 #include "MidiIo.h"
 #include "ControllerIoListener.h"
 
@@ -19,10 +19,10 @@ const int MUX_SELECT3_PIN = 29;
 
 const int MUX_COUNT = 1;
 
-class ControllerIo
+class SynthConfigurationOrchestrator
 {
 public:
-    ControllerIo(ControllerIoListener *controllerListener) : mux1(INPUT_GROUP_MUX1, 10)
+    SynthConfigurationOrchestrator(ControllerIoListener *controllerListener) : mux1(INPUT_GROUP_MUX1, 10)
     {
         _controllerListener = controllerListener;
     }
@@ -43,11 +43,6 @@ public:
     void task()
     {
         uint32_t microSeconds = micros();
-
-        if (_readTime < microSeconds)
-        {
-            _readTime = microSeconds;
-        }
 
         switch (_state)
         {
@@ -76,10 +71,7 @@ public:
         updateSynthConfiguration();
     }
 
-    void midiControl(int input, int value)
-    {
-        midiIo.update(input, value);
-    }
+    MidiIo *midiHandler() { return &midiIo; }
 
 private:
     ControllerIoListener *_controllerListener;
@@ -88,7 +80,7 @@ private:
     int _state;
     uint32_t _readTime;
     uint32_t _notifyTime;
-    Mux mux1;
+    MuxIo mux1;
     MidiIo midiIo;
 
     void updateSynthConfiguration()

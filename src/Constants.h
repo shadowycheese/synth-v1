@@ -3,7 +3,9 @@
 
 const float TWELTH_ROOT_OF_TWO = 1.0595;
 
-#define MIDI_FREQ(note) (440.0 * pow(2.0, (note - 71) / 12.0))
+#define MIDI_FREQ(note) (440.0 * pow(2.0, (note - 69) / 12.0))
+
+#define DETUNE_MAX_SPREAD 40.0f
 
 #define MAX_VOICES 8
 
