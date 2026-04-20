@@ -8,6 +8,7 @@
 #define DEBOUNCE_DISTANCE 1
 
 const int MUX1_READ_PIN = 27;
+const int MUX2_READ_PIN = 26;
 
 class MuxIo
 {
@@ -30,14 +31,18 @@ public:
             return;
         }
 
-        analogRead(MUX1_READ_PIN);
+        int pin = muxId == 1 ? MUX1_READ_PIN : MUX2_READ_PIN;
 
-        int rawValue = analogRead(MUX1_READ_PIN);
+        analogRead(pin);
+
+        int rawValue = analogRead(pin);
         int oldValue = currentValues[input].value();
         int value = currentValues[input].read(rawValue);
 
         if (oldValue != value)
         {
+            // Serial.printf("%d %02d = %03X\n", muxId, input, value);
+
             bufferValues[input] = value;
 
             bufferChanged = true;

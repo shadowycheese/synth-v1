@@ -23,7 +23,7 @@ public:
 
     void task();
 
-    void onSynthConfigurationChanged(SynthConfiguration *configuration, int changeFlags);
+    void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags);
 
 private:
     void updateVoices();

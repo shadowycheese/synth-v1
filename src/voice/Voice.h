@@ -14,14 +14,14 @@ public:
     void noteOn(byte note, float frequency, float velocity);
     void noteOff();
 
-    AudioStream &getOutput() { return envelope1; }
+    AudioStream &getOutput() { return amp; }
 
     float volume();
     bool isPlaying();
     uint32_t timestamp() { return _timestamp; };
     byte noteLastPlayed() { return _note; };
 
-    void onSynthConfigurationChanged(SynthConfiguration *configuration, int changeFlags);
+    void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags);
     void updateFilter();
 
 private:
@@ -36,12 +36,15 @@ private:
 
     AudioEffectEnvelope envelope1;
 
+    AudioAmplifier amp;
+
     AudioConnection patch1, patch2, patch3, patch4;
     AudioConnection patch5, patch6, patch7, patch8;
     AudioConnection patchM1, patchM2;
 
     AudioConnection patchFilter;
     AudioConnection patchEnv;
+    AudioConnection patchAmp;
     AudioConnection patchAnalyze;
 
     VoiceConfiguration _voiceConfiguration;
@@ -52,7 +55,10 @@ private:
     float _amplitudeScale;
     uint32_t _iteration;
 
-    void configure(bool restart);
+    inline void configure(bool restart);
+    inline void configureOscilator(int id, float frequency, float ampliture, float phase);
+    void configureSuperSaw(bool restart);
+    void configureStandard(bool restart);
 };
 
 #endif

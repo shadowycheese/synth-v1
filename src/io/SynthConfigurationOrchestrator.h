@@ -6,23 +6,27 @@
 #include "MidiIo.h"
 #include "ControllerIoListener.h"
 
-const int STATE_SELECT_MUX = 0;
-const int STATE_WAIT_MUX = 1;
-const int STATE_READ_MUX = 2;
-const int STATE_NOTIFY = 3;
+enum ReadState : uint8_t
+{
+    STATE_SELECT_MUX = 0,
+    STATE_WAIT_MUX = 1,
+    STATE_READ_MUX = 2,
+    STATE_NOTIFY = 3
+};
 
-const int MUX_ENABLE_PIN = 28;
-const int MUX_SELECT0_PIN = 32;
-const int MUX_SELECT1_PIN = 31;
-const int MUX_SELECT2_PIN = 30;
-const int MUX_SELECT3_PIN = 29;
+#define MUX_ENABLE_PIN 28
+#define MUX_SELECT3_PIN 32
+#define MUX_SELECT2_PIN 31
+#define MUX_SELECT1_PIN 30
+#define MUX_SELECT0_PIN 29
 
 const int MUX_COUNT = 1;
 
 class SynthConfigurationOrchestrator
 {
 public:
-    SynthConfigurationOrchestrator(ControllerIoListener *controllerListener) : mux1(INPUT_GROUP_MUX1, 10)
+    SynthConfigurationOrchestrator(ControllerIoListener *controllerListener) : mux1(INPUT_GROUP_MUX1, 16),
+                                                                               mux2(INPUT_GROUP_MUX2, 16)
     {
         _controllerListener = controllerListener;
     }
@@ -62,6 +66,7 @@ public:
             break;
         case STATE_READ_MUX:
             mux1.read(_currentInput);
+            // mux2.read(_currentInput);
 
             _state = STATE_SELECT_MUX;
             _currentInput = (_currentInput + 1) & 0xF;
@@ -81,6 +86,7 @@ private:
     uint32_t _readTime;
     uint32_t _notifyTime;
     MuxIo mux1;
+    MuxIo mux2;
     MidiIo midiIo;
 
     void updateSynthConfiguration()
@@ -90,6 +96,7 @@ private:
         if (m >= _notifyTime)
         {
             mux1.commitBufferChanges(_controllerListener);
+            // mux2.commitBufferChanges(_controllerListener);
             midiIo.commitBufferChanges(_controllerListener);
 
             _controllerListener->commit();
