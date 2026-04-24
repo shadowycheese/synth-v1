@@ -14,7 +14,7 @@ public:
     void noteOn(byte note, float frequency, float velocity);
     void noteOff();
 
-    AudioStream &getOutput() { return amp; }
+    AudioStream &getOutput() { return envelope1; }
 
     float volume();
     bool isPlaying();
@@ -25,27 +25,34 @@ public:
     void updateFilter();
 
 private:
-    AudioMixer4 mixer1;
-    AudioMixer4 mixer2;
-    AudioMixer4 voiceMix;
+    AudioMixer4 oscilatorMixer1;
+    AudioMixer4 oscilatorMixer2;
+    AudioMixer4 oscilatorMixerMain;
 
-    AudioAnalyzePeak analyze;
-    AudioSynthWaveform waveforms[7];
+    AudioSynthWaveformDc pitch;
+    AudioSynthWaveformDc filterLevel;
+    AudioSynthWaveformModulated oscillators[7];
+    AudioSynthWaveform lfo;
+    AudioEffectMultiply pitchMultiply;
+    AudioEffectMultiply filterMultiply;
     AudioSynthNoiseWhite noise;
-    AudioFilterLadder ladderFilter;
-
+    AudioFilterStateVariable filter;
     AudioEffectEnvelope envelope1;
 
-    AudioAmplifier amp;
+    AudioConnection pitchPatch, lfoPatch1, filterLevelPatch, lfoPatch2;
+    AudioConnection pitchMultiplyPatch, filterMultiplyPatch;
 
-    AudioConnection patch1, patch2, patch3, patch4;
-    AudioConnection patch5, patch6, patch7, patch8;
-    AudioConnection patchM1, patchM2;
+    AudioConnection patchOscIn0, patchOscIn1, patchOscIn2, patchOscIn3;
+    AudioConnection patchOscIn4, patchOscIn5, patchOscIn6;
 
-    AudioConnection patchFilter;
+    AudioConnection patchOscOut0, patchOscOut1, patchOscOut2, patchOscOut3;
+    AudioConnection patchOscOut4, patchOscOut5, patchOscOut6, patchOscOut7;
+
+    AudioConnection patchOscMain1, patchOscMain2;
+
+    AudioConnection patchFilter1, patchFilter2;
+
     AudioConnection patchEnv;
-    AudioConnection patchAmp;
-    AudioConnection patchAnalyze;
 
     VoiceConfiguration _voiceConfiguration;
 
@@ -55,10 +62,10 @@ private:
     float _amplitudeScale;
     uint32_t _iteration;
 
-    inline void configure(bool restart);
+    void configureVoice(bool restart);
+    void configureFilter();
+    inline void configureEnvelope();
     inline void configureOscilator(int id, float frequency, float ampliture, float phase);
-    void configureSuperSaw(bool restart);
-    void configureStandard(bool restart);
 };
 
 #endif

@@ -72,6 +72,7 @@ void setup()
     usbMidi1.setHandleNoteOff(midiNoteOff);
     usbMidi1.setHandlePitchChange(midiPitchChange);
     usbMidi1.setHandleControlChange(midiControlChange);
+    usbMidi1.setHandleControlChange(midiControlChange);
 
     configurationOrchestrator.begin();
 }

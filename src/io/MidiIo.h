@@ -5,7 +5,7 @@
 #include "AnalogBuffer.h"
 #include "ControllerIoListener.h"
 
-#define MIDI_INPUT_COUNT 6
+#define MIDI_INPUT_COUNT 7
 
 #define MIDI_INPUT_PITCH 0
 #define MIDI_INPUT_RESONANCE 1
@@ -13,6 +13,7 @@
 #define MIDI_INPUT_PW 3
 #define MIDI_INPUT_WAVEFORM0 4
 #define MIDI_INPUT_WAVEFORM1 5
+#define MIDI_INPUT_CUTOFF 6
 
 class MidiIo
 {
@@ -33,6 +34,10 @@ public:
     void midiControl(byte control, byte value)
     {
         if (control == 7)
+        {
+            update(MIDI_INPUT_CUTOFF, 8 * (int)value);
+        }
+        else if (control == 7)
         {
             update(MIDI_INPUT_RESONANCE, 8 * (int)value);
         }

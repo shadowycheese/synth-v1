@@ -31,7 +31,7 @@ public:
     {
         Func handler = getIoHandler(group, input);
 
-        // Serial.printf("Change %d %d %d\n", group, input, value);
+        currentInput = input;
 
         _changeFlags |= (this->*handler)(value);
     }
@@ -39,26 +39,28 @@ public:
 private:
     typedef int (SynthConfigurationMapper::*Func)(int);
 
-    Func midiInputs[6] = {
-        &SynthConfigurationMapper::updatePitch,
+    int currentInput;
+
+    Func midiInputs[7] = {
+        &SynthConfigurationMapper::updatePitchBend,
         &SynthConfigurationMapper::updateResonance,
         &SynthConfigurationMapper::updateDetune,
-        &SynthConfigurationMapper::updatePulseWidth,
-        &SynthConfigurationMapper::updateWaveform0,
-        &SynthConfigurationMapper::updateWaveform1,
-    };
+        &SynthConfigurationMapper::updateLfoFrequency,
+        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::noOp};
 
     Func mux1Inputs[16] = {
         &SynthConfigurationMapper::updateAttack,
         &SynthConfigurationMapper::updateDecay,
         &SynthConfigurationMapper::updateSustain,
         &SynthConfigurationMapper::updateRelease,
-        &SynthConfigurationMapper::updateSuperSawMode,
-        &SynthConfigurationMapper::updateVoiceGain,
-        &SynthConfigurationMapper::updateOscillatorGain3,
-        &SynthConfigurationMapper::updateOscillatorGain2,
-        &SynthConfigurationMapper::updateOscillatorGain1,
-        &SynthConfigurationMapper::updateOscillatorGain0,
+        &SynthConfigurationMapper::updateManualCutoff,
+        &SynthConfigurationMapper::updateOctaveControl,
+        &SynthConfigurationMapper::updateOscillatorAmplitude3,
+        &SynthConfigurationMapper::updateOscillatorAmplitude2,
+        &SynthConfigurationMapper::updateOscillatorAmplitude1,
+        &SynthConfigurationMapper::updateOscillatorAmplitude0,
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
@@ -67,18 +69,18 @@ private:
         &SynthConfigurationMapper::noOp};
 
     Func mux2Inputs[16] = {
-        &SynthConfigurationMapper::updateWaveform0,
-        &SynthConfigurationMapper::updateWaveform1,
-        &SynthConfigurationMapper::updateWaveform2,
-        &SynthConfigurationMapper::updateWaveform3,
         &SynthConfigurationMapper::updateVoiceGain,
-        &SynthConfigurationMapper::updateDetune,
-        &SynthConfigurationMapper::updateResonance,
-        &SynthConfigurationMapper::updateCutoff,
-        &SynthConfigurationMapper::updatePulseWidth,
+        &SynthConfigurationMapper::updateLfoWaveform,
+        &SynthConfigurationMapper::updatePitchLevel,
+        &SynthConfigurationMapper::updateWaveform3,
+        &SynthConfigurationMapper::updateLfoAmplitude,
+        &SynthConfigurationMapper::updateWaveform2,
+        &SynthConfigurationMapper::updateLfoPulseWidth,
+        &SynthConfigurationMapper::updateWaveform1,
+        &SynthConfigurationMapper::updateWaveform0,
+        &SynthConfigurationMapper::updateFilterLevel,
+        &SynthConfigurationMapper::updateAutoCutoff,
         &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::updateManualCutoff,
-        &SynthConfigurationMapper::updateSuperSawMode,
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
@@ -87,12 +89,17 @@ private:
 
     Func getIoHandler(int group, int input)
     {
-        if (group == INPUT_GROUP_MIDI)
+        switch (group)
         {
+        case INPUT_GROUP_MIDI:
             return midiInputs[input];
+        case INPUT_GROUP_MUX1:
+            return mux1Inputs[input];
+        case INPUT_GROUP_MUX2:
+            return mux2Inputs[input];
+        default:
+            return &SynthConfigurationMapper::noOp;
         }
-
-        return mux1Inputs[input];
     }
 
     SynthConfiguration _localSynthConfiguration;
@@ -225,9 +232,6 @@ private:
 
     int updateWaveform1(int value)
     {
-        updateWaveform(2, value);
-        updateWaveform(3, value);
-
         return updateWaveform(1, value);
     }
 
@@ -245,42 +249,56 @@ private:
     {
         int newValue = (value / 128) & 7;
 
-        Serial.printf("updateWaveform %d: %d  %d\n", waveform, _localSynthConfiguration.waveforms[waveform], newValue);
-
         if (newValue != _localSynthConfiguration.waveforms[waveform])
         {
             Serial.printf("Waveform %d  %d\n", waveform, newValue);
 
             _localSynthConfiguration.waveforms[waveform] = newValue;
 
-            return OSCILLATOR_CHANGED;
+            return WAVEFORM_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateLfoWaveform(int value)
+    {
+        int newValue = (value / 128) & 7;
+
+        if (newValue != _localSynthConfiguration.lfoWaveform)
+        {
+            Serial.printf("LFO Waveform %d\n", newValue);
+
+            _localSynthConfiguration.lfoWaveform = newValue;
+
+            return WAVEFORM_CHANGED;
         }
 
         return 0;
     }
 
     // Voice configuration
-    int updateOscillatorGain0(int value)
+    int updateOscillatorAmplitude0(int value)
     {
-        return updateOscillatorGain(0, value);
+        return updateOscillatorAmplitude(0, value);
     }
 
-    int updateOscillatorGain1(int value)
+    int updateOscillatorAmplitude1(int value)
     {
-        return updateOscillatorGain(1, value);
+        return updateOscillatorAmplitude(1, value);
     }
 
-    int updateOscillatorGain2(int value)
+    int updateOscillatorAmplitude2(int value)
     {
-        return updateOscillatorGain(2, value);
+        return updateOscillatorAmplitude(2, value);
     }
 
-    int updateOscillatorGain3(int value)
+    int updateOscillatorAmplitude3(int value)
     {
-        return updateOscillatorGain(3, value);
+        return updateOscillatorAmplitude(3, value);
     }
 
-    int updateNoise(int value)
+    int updateNoiseAmplitude(int value)
     {
         float newValue = getScaledValue(value, 12, 12);
 
@@ -298,7 +316,7 @@ private:
         return 0;
     }
 
-    int updateOscillatorGain(int oscilator, int value)
+    int updateOscillatorAmplitude(int oscilator, int value)
     {
         float newValue = getScaledValue(value, 12, 12);
 
@@ -316,33 +334,120 @@ private:
         return 0;
     }
 
-    int updatePulseWidth(int value)
+    int updateLfoPulseWidth(int value)
     {
-        float newValue = value / 1023.0f;
+        float newValue = (getMidScaledValue(value, 12, 12, 12) + 1.0f) / 2;
 
-        if (newValue != _localSynthConfiguration.pulseWidth)
+        if (newValue != _localSynthConfiguration.lfoPulseWidth)
         {
-            Serial.printf("Pulse Width = %0.3f\n", newValue);
+            Serial.printf("LFO Pulse Width = %0.3f\n", newValue);
 
-            _localSynthConfiguration.pulseWidth = newValue;
+            _localSynthConfiguration.lfoPulseWidth = newValue;
 
-            return VOICE_CHANGED;
+            return FILTER_CHANGED;
         }
 
         return 0;
     }
 
-    int updateManualCutoff(int value)
+    int updateLfoFrequency(int value)
+    {
+        float newValue = getScaledValue(value, 12, 12);
+
+        newValue *= newValue * 1000.0f;
+
+        if (newValue != _localSynthConfiguration.lfoFrequency)
+        {
+            Serial.printf("LFO Frequncy = %0.1f\n", newValue);
+
+            _localSynthConfiguration.lfoFrequency = newValue;
+
+            return FILTER_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateLfoAmplitude(int value)
+    {
+        float newValue = getScaledValue(value, 12, 12);
+
+        newValue *= newValue;
+
+        if (newValue != _localSynthConfiguration.lfoAmplitude)
+        {
+            Serial.printf("LFO Amplitude = %0.1f\n", newValue);
+
+            _localSynthConfiguration.lfoAmplitude = newValue;
+
+            return FILTER_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateOctaveControl(int value)
+    {
+        float newValue = getMidScaledValue(value, 12, 12, 12);
+
+        newValue *= 8.0f;
+
+        if (newValue != _localSynthConfiguration.octaveControl)
+        {
+            Serial.printf("Octave Control = %0.3f\n", newValue);
+
+            _localSynthConfiguration.octaveControl = newValue;
+
+            return FILTER_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateAutoCutoff(int value)
     {
         bool newValue = value >= 512 ? true : false;
 
-        if (newValue != _localSynthConfiguration.manualCutoff)
+        if (newValue != _localSynthConfiguration.autoCutoff)
         {
-            Serial.printf("Manual Cutoff = %d\n", newValue);
+            Serial.printf("Is Auto Cutoff = %s\n", newValue ? "true" : "false");
 
-            _localSynthConfiguration.manualCutoff = newValue;
+            _localSynthConfiguration.autoCutoff = newValue;
 
             return FILTER_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateFilterLevel(int value)
+    {
+        float valueF = getScaledValue(value, 12, 12);
+        if (valueF != _localSynthConfiguration.filterLevel)
+        {
+            Serial.printf("Filter Level = %0.3f\n", valueF);
+
+            _localSynthConfiguration.filterLevel = valueF;
+
+            return FILTER_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updatePitchLevel(int value)
+    {
+        float valueF = getScaledValue(value, 12, 12);
+
+        valueF *= valueF;
+
+        if (valueF != _localSynthConfiguration.pitchLevel)
+        {
+            Serial.printf("Pitch Level = %0.3f\n", valueF);
+
+            _localSynthConfiguration.pitchLevel = valueF;
+
+            return VOICE_CHANGED;
         }
 
         return 0;
@@ -353,7 +458,6 @@ private:
         float valueF = getScaledValue(value, 12, 12);
         float newValue = valueF * valueF * valueF;
 
-        Serial.printf("Detune1 = %0.3f\n", newValue);
         if (newValue != _localSynthConfiguration.detune)
         {
             Serial.printf("Detune = %0.3f\n", newValue);
@@ -378,56 +482,42 @@ private:
 
             _localSynthConfiguration.resonance = newValue;
 
-            return FILTER_CHANGED;
-        }
-
-        return 0;
-    }
-
-    int updateCutoff(int value)
-    {
-        float newValue = 1.8f * ((value * value) / 1023.0f);
-
-        if (newValue != _localSynthConfiguration.cutoff)
-        {
-            Serial.printf("Cutoff = %0.3f\n", newValue);
-
-            _localSynthConfiguration.cutoff = newValue;
-
-            return FILTER_CHANGED;
-        }
-
-        return 0;
-    }
-
-    int updatePitch(int value)
-    {
-        float newValue = (value / 16384.0f);
-        Serial.printf("Pitch: %d = %0.3f\n", value, newValue);
-
-        if (newValue != _localSynthConfiguration.pitch)
-        {
-            Serial.printf("Pitch = %0.3f\n", newValue);
-
-            _localSynthConfiguration.pitch = newValue;
-
             return VOICE_CHANGED;
         }
 
         return 0;
     }
 
-    int updateSuperSawMode(int value)
+    int updateManualCutoff(int value)
     {
-        bool newValue = value <= 512 ? true : false;
+        float newValue = getScaledValue(value, 12, 12);
 
-        if (newValue != _localSynthConfiguration.superSawMode)
+        // newValue = newValue < 0 ? -newValue * newValue : newValue * newValue;
+
+        if (newValue != _localSynthConfiguration.manualCutoff)
         {
-            Serial.printf("SuperSaw mode = %d\n", newValue);
+            Serial.printf("Cutoff = %0.3f\n", newValue);
 
-            _localSynthConfiguration.superSawMode = newValue;
+            _localSynthConfiguration.manualCutoff = newValue;
 
-            return OSCILLATOR_CHANGED;
+            return FILTER_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updatePitchBend(int value)
+    {
+        float newValue = (value / 16384.0f);
+        Serial.printf("Pitch: %d = %0.3f\n", value, newValue);
+
+        if (newValue != _localSynthConfiguration.pitchBend)
+        {
+            Serial.printf("Pitch = %0.3f\n", newValue);
+
+            _localSynthConfiguration.pitchBend = newValue;
+
+            return VOICE_CHANGED;
         }
 
         return 0;
@@ -436,6 +526,7 @@ private:
     // Helpers
     int noOp(int value)
     {
+        // Serial.printf("Change %d => %d\n", currentInput, value);
         return 0;
     }
 
@@ -456,6 +547,43 @@ private:
         value -= (maxThreshold + zeroThreshold);
 
         return value / range;
+    }
+
+    float getMidScaledValue(int value, int minThreshold, int maxThreshold, int centreThreshold)
+    {
+        if (value > (1023 - maxThreshold))
+        {
+            return 1.0f;
+        }
+
+        if (value < minThreshold)
+        {
+            return -1.0f;
+        }
+
+        int centreMin = 512 - (centreThreshold >> 1);
+        int centreMax = centreMin + centreThreshold;
+
+        if (value < centreMin)
+        {
+            float range = centreMin - minThreshold;
+
+            value -= minThreshold;
+
+            return -(1.0f - (value / range));
+        }
+        else if (value > centreMax)
+        {
+            float range = 1023.0f - (centreMax + maxThreshold);
+
+            value -= centreMax;
+
+            return value / range;
+        }
+        else
+        {
+            return 0.0f;
+        }
     }
 };
 

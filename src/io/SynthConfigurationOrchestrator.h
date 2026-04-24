@@ -66,7 +66,7 @@ public:
             break;
         case STATE_READ_MUX:
             mux1.read(_currentInput);
-            // mux2.read(_currentInput);
+            mux2.read(_currentInput);
 
             _state = STATE_SELECT_MUX;
             _currentInput = (_currentInput + 1) & 0xF;
@@ -95,8 +95,11 @@ private:
 
         if (m >= _notifyTime)
         {
+            // mux1.debug();
+            // mux2.debug();
+
             mux1.commitBufferChanges(_controllerListener);
-            // mux2.commitBufferChanges(_controllerListener);
+            mux2.commitBufferChanges(_controllerListener);
             midiIo.commitBufferChanges(_controllerListener);
 
             _controllerListener->commit();

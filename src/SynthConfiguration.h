@@ -8,13 +8,13 @@ using SynthConfigurationFlags = uint16_t;
 
 static constexpr SynthConfigurationFlags ENVELOPE_CHANGED = 0x0001;
 static constexpr SynthConfigurationFlags FILTER_CHANGED = 0x0002;
-static constexpr SynthConfigurationFlags OSCILLATOR_CHANGED = 0x0004;
+static constexpr SynthConfigurationFlags WAVEFORM_CHANGED = 0x0004;
 static constexpr SynthConfigurationFlags VOLUME_CHANGED = 0x0008;
 static constexpr SynthConfigurationFlags VOICE_CHANGED = 0x0010;
 
-inline bool oscillatorChanged(SynthConfigurationFlags flags)
+inline bool waveformChanged(SynthConfigurationFlags flags)
 {
-    return flags & OSCILLATOR_CHANGED;
+    return flags & WAVEFORM_CHANGED;
 }
 inline bool filterChanged(SynthConfigurationFlags flags)
 {
@@ -43,6 +43,7 @@ public:
 
     // Waveform parameters
     uint8_t waveforms[4];
+    uint8_t lfoWaveform;
 
     // Envelope parameters
     float attack = 10;
@@ -50,16 +51,22 @@ public:
     float sustain = 0.7;
     float release = 300;
 
-    // Voice parameters
-    float pitch = 0;
-    float detune = 0;
+    // Filter parameters
+    bool autoCutoff;
+    float manualCutoff;
+    float filterLevel;
+    float lfoFrequency;
+    float lfoAmplitude;
+    float lfoPulseWidth;
     float resonance = 0;
+    float octaveControl;
+
+    // Voice parameters
+    float pitchBend = 0;
+    float detune = 0;
     float amplitudes[4];
     float noiseAmplitude;
-    float pulseWidth;
-    float cutoff;
-    bool manualCutoff;
-    bool superSawMode;
+    float pitchLevel = 0.2;
 
     // Volume parameters
     float masterVolume = 1.0f;
@@ -75,13 +82,16 @@ public:
 
         detune = source->detune;
         resonance = source->resonance;
-        pitch = source->pitch;
-        pulseWidth = source->pulseWidth;
-        cutoff = source->cutoff;
+        pitchBend = source->pitchBend;
+        lfoAmplitude = source->lfoAmplitude;
+        lfoFrequency = source->lfoFrequency;
+        lfoPulseWidth = source->lfoPulseWidth;
+
         manualCutoff = source->manualCutoff;
-        superSawMode = source->superSawMode;
+        autoCutoff = source->autoCutoff;
 
         noiseAmplitude = source->noiseAmplitude;
+        lfoWaveform = source->lfoWaveform;
 
         for (int i = 0; i < 4; i++)
         {

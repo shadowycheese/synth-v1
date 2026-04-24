@@ -5,7 +5,7 @@
 #include "AnalogBuffer.h"
 #include "ControllerIoListener.h"
 
-#define DEBOUNCE_DISTANCE 1
+#define DEBOUNCE_DISTANCE 5
 
 const int MUX1_READ_PIN = 27;
 const int MUX2_READ_PIN = 26;
@@ -41,11 +41,17 @@ public:
 
         if (oldValue != value)
         {
-            // Serial.printf("%d %02d = %03X\n", muxId, input, value);
-
             bufferValues[input] = value;
 
             bufferChanged = true;
+        }
+    }
+
+    void debug()
+    {
+        for (int i = 0; i < activePins; i++)
+        {
+            Serial.printf("%03X ", bufferValues[i]);
         }
     }
 

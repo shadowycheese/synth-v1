@@ -1,59 +1,66 @@
 #ifndef VOICECONFIGURATION_H
 #define VOICECONFIGURATION_H
 
-class VoiceConfiguration
+class VoiceConfiguration : public SynthConfiguration
 {
 public:
-    float detune;
-    float resonance;
-    float pitch;
-    float pulseWidth;
-    int waveforms[4];
-    float amplitudes[4];
-    float noiseAmplitude;
-    float cutoff;
-    bool manualCutoff;
-    bool superSawMode;
-
-    inline int activeOscilators() { return activeOscilatorCount; }
     inline int audioWaveform(int waveform)
     {
         return WaveFormMap[waveforms[waveform]];
     }
 
-    void copyOscillatorConfiguration(SynthConfiguration *source)
+    inline int audioWaveformLfo()
     {
-        superSawMode = source->superSawMode;
+        return WaveFormMap[lfoWaveform];
+    }
+
+    void copyEnvelopeConfiguration(SynthConfiguration *source)
+    {
+        attack = source->attack;
+        decay = source->decay;
+        sustain = source->sustain;
+        decay = source->decay;
+    }
+
+    void copyWaveformConfiguration(SynthConfiguration *source)
+    {
+        lfoWaveform = source->lfoWaveform;
 
         for (int i = 0; i < 4; i++)
         {
             waveforms[i] = source->waveforms[i];
         }
-
-        updateOscilatorCount();
     }
 
     void copyFilterConfiguration(SynthConfiguration *source)
     {
-        manualCutoff = source->manualCutoff;
+        autoCutoff = source->autoCutoff;
         resonance = source->resonance;
-        cutoff = source->cutoff;
+        manualCutoff = source->manualCutoff;
+        lfoFrequency = source->lfoFrequency;
+        lfoAmplitude = source->lfoAmplitude;
+        lfoPulseWidth = source->lfoPulseWidth;
+        filterLevel = source->filterLevel;
     }
 
     void copyVoiceConfiguration(SynthConfiguration *source)
     {
         detune = source->detune;
-        resonance = source->resonance;
         noiseAmplitude = source->noiseAmplitude;
-        pitch = source->pitch;
-        pulseWidth = source->pulseWidth;
+        pitchBend = source->pitchBend;
 
         for (int i = 0; i < 4; i++)
         {
             amplitudes[i] = source->amplitudes[i];
         }
+    }
 
-        updateOscilatorCount();
+    void copyVolumeConfiguration(SynthConfiguration *source)
+    {
+        masterVolume = source->masterVolume;
+        filterGain = source->filterGain;
+        voiceGain = source->voiceGain;
+        pitchLevel = source->pitchLevel;
     }
 
     static constexpr int WaveFormMap[8] = {
@@ -78,21 +85,6 @@ public:
         0.3f,
         0.6f,
     };
-
-private:
-    int activeOscilatorCount;
-    void updateOscilatorCount()
-    {
-        activeOscilatorCount = 0;
-
-        for (int i = 0; i < 4; i++)
-        {
-            if (amplitudes[i] > 0)
-            {
-                activeOscilatorCount += (i == 0) ? 1 : (superSawMode ? 2 : 1);
-            }
-        }
-    }
 };
 
 #endif
