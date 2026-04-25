@@ -14,7 +14,10 @@ VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1,
                                      patchM2(mixer2, 0, masterMix, 1),
 
                                      patchLeft(masterMix, 0, left, 0),
-                                     patchRight(masterMix, 0, right, 1)
+                                     patchRight(masterMix, 0, right, 1),
+
+                                     voiceUpdates("Voice Updates"),
+                                     filterUpdates("Filter Updates")
 {
     for (int i = 0; i < 4; i++)
     {
@@ -60,7 +63,7 @@ void VoiceController::noteOn(byte note, byte velocity)
     {
         notesVoiceMap[note] = voice;
 
-        voicePool[voice].noteOn(note, MIDI_FREQ(note), 0.2 + (0.8f * ((float)velocity) / 128));
+        voicePool[voice].noteOn(note, midiNoteHz(note), 0.2 + (0.8f * ((float)velocity) / 128));
     }
 }
 
@@ -103,43 +106,36 @@ int VoiceController::findOldestVoice(byte note)
     return oldest;
 }
 
-void VoiceController::updateVoiceFilters()
+void VoiceController::updateVoiceFilters(uint32_t microSeconds)
 {
-    uint32_t m = micros();
-
     // Handle millis wrapping
-    if ((nextFilterUpdateTime - m) > 100000)
+    if (microSeconds >= nextFilterUpdateTime)
     {
-        nextFilterUpdateTime = m + 100;
-        return;
+        int voice = nextFilterToUpdate++;
+
+        nextFilterToUpdate &= 7;
+
+        nextFilterUpdateTime = microSeconds + 200;
+
+        voicePool[voice].updateFilter();
+
+        if (nextFilterToUpdate == 0)
+        {
+            filterUpdates.inc(microSeconds);
+        }
     }
-
-    if (m < nextVoiceUpdateTime)
-    {
-        return;
-    }
-
-    int voice = nextFilterToUpdate++;
-
-    nextFilterToUpdate &= 7;
-
-    nextFilterUpdateTime = m + 100;
-
-    voicePool[voice].updateFilter();
 }
 
-void VoiceController::updateVoices()
+void VoiceController::updateVoices(uint32_t microSeconds)
 {
-    uint32_t m = millis();
-
     // Handle millis wrapping
-    if ((nextVoiceUpdateTime - m) > 100000)
+    if ((nextVoiceUpdateTime - microSeconds) > 1000000)
     {
-        nextVoiceUpdateTime = m + 2;
+        nextVoiceUpdateTime = microSeconds + 2;
         return;
     }
 
-    if (m < nextVoiceUpdateTime)
+    if (microSeconds < nextVoiceUpdateTime)
     {
         return;
     }
@@ -148,7 +144,12 @@ void VoiceController::updateVoices()
 
     nextVoiceToUpdate &= 7;
 
-    nextVoiceUpdateTime = m + 2;
+    if (nextVoiceToUpdate == 0)
+    {
+        voiceUpdates.inc(microSeconds);
+    }
+
+    nextVoiceUpdateTime = microSeconds + 1500;
 
     if (voiceVersions[voice] != voiceConfigurationVersion)
     {
@@ -160,8 +161,8 @@ void VoiceController::updateVoices()
     }
 }
 
-void VoiceController::task()
+void VoiceController::task(uint32_t microSeconds)
 {
-    updateVoiceFilters();
-    updateVoices();
+    updateVoiceFilters(microSeconds);
+    updateVoices(microSeconds);
 }

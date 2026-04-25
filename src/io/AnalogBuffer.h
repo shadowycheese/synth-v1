@@ -1,12 +1,14 @@
 #ifndef ANALOGBUFFER_H
 #define ANALOGBUFFER_H
 
+#define BUFFER_SIZE 5
+
 class AnalogBuffer
 {
 public:
     AnalogBuffer()
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < BUFFER_SIZE; i++)
         {
             values[i] = 0;
         }
@@ -16,7 +18,7 @@ public:
     {
         values[pos++] = newVal;
 
-        pos &= 3;
+        pos = pos % BUFFER_SIZE;
 
         return value();
     }
@@ -25,18 +27,18 @@ public:
     {
         int value = 0;
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < BUFFER_SIZE; i++)
         {
             value += values[i];
         }
 
-        value /= 4;
+        value /= BUFFER_SIZE;
 
         return value;
     }
 
 private:
-    int values[4];
+    int values[BUFFER_SIZE];
     int pos = 0;
 };
 

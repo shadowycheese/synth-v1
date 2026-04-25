@@ -26,7 +26,9 @@ class SynthConfigurationOrchestrator
 {
 public:
     SynthConfigurationOrchestrator(ControllerIoListener *controllerListener) : mux1(INPUT_GROUP_MUX1, 16),
-                                                                               mux2(INPUT_GROUP_MUX2, 16)
+                                                                               mux2(INPUT_GROUP_MUX2, 16),
+                                                                               ioReads("IO Read Cycles"),
+                                                                               commits("IO Commits")
     {
         _controllerListener = controllerListener;
     }
@@ -44,10 +46,8 @@ public:
         analogReadResolution(10);
     }
 
-    void task()
+    void task(uint32_t microSeconds)
     {
-        uint32_t microSeconds = micros();
-
         switch (_state)
         {
         case STATE_SELECT_MUX:
@@ -70,10 +70,15 @@ public:
 
             _state = STATE_SELECT_MUX;
             _currentInput = (_currentInput + 1) & 0xF;
+
+            if (_currentInput == 0)
+            {
+                ioReads.inc(microSeconds);
+            }
             break;
         }
 
-        updateSynthConfiguration();
+        updateSynthConfiguration(microSeconds);
     }
 
     MidiIo *midiHandler() { return &midiIo; }
@@ -89,11 +94,12 @@ private:
     MuxIo mux2;
     MidiIo midiIo;
 
-    void updateSynthConfiguration()
-    {
-        uint32_t m = millis();
+    CallCounter ioReads;
+    CallCounter commits;
 
-        if (m >= _notifyTime)
+    void updateSynthConfiguration(uint32_t microSeconds)
+    {
+        if (microSeconds >= _notifyTime)
         {
             // mux1.debug();
             // mux2.debug();
@@ -104,7 +110,9 @@ private:
 
             _controllerListener->commit();
 
-            _notifyTime = m + 10;
+            _notifyTime = microSeconds + 10000;
+
+            commits.inc(microSeconds);
         }
     }
 };

@@ -6,6 +6,8 @@
 #include "../SynthConfiguration.h"
 #include "../SynthConfigurationListener.h"
 #include "../Constants.h"
+#include "../utils/CallCounter.h"
+#include "../utils/ClipDetector.h"
 
 class VoiceController : public SynthConfigurationListener
 {
@@ -21,13 +23,13 @@ public:
 
     void begin();
 
-    void task();
+    void task(uint32_t microSeconds);
 
     void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags);
 
 private:
-    void updateVoices();
-    void updateVoiceFilters();
+    void updateVoices(uint32_t microSeconds);
+    void updateVoiceFilters(uint32_t microSeconds);
 
     Voice voicePool[MAX_VOICES];
 
@@ -59,6 +61,9 @@ private:
     int nextVoiceToUpdate;
     int voiceVersions[MAX_VOICES];
     int pendingChanges[MAX_VOICES];
+
+    CallCounter voiceUpdates;
+    CallCounter filterUpdates;
 };
 
 #endif

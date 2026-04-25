@@ -19,7 +19,14 @@ public:
         attack = source->attack;
         decay = source->decay;
         sustain = source->sustain;
-        decay = source->decay;
+        release = source->release;
+    }
+
+    void copyEffectConfiguration(SynthConfiguration *source)
+    {
+        reverb = source->reverb;
+        chorusEnabled = source->chorusEnabled;
+        reverbEnabled = source->reverbEnabled;
     }
 
     void copyWaveformConfiguration(SynthConfiguration *source)

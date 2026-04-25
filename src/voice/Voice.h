@@ -6,6 +6,9 @@
 #include "../SynthConfiguration.h"
 #include "../SynthConfigurationListener.h"
 #include "VoiceConfiguration.h"
+#include "../utils/ClipDetector.h"
+
+#define CHORUS_DELAY_LEN (44100 * 40 / 1000) // 35ms
 
 class Voice : public SynthConfigurationListener
 {
@@ -14,7 +17,7 @@ public:
     void noteOn(byte note, float frequency, float velocity);
     void noteOff();
 
-    AudioStream &getOutput() { return envelope1; }
+    AudioStream &getOutput() { return chorusMixer; }
 
     float volume();
     bool isPlaying();
@@ -37,7 +40,13 @@ private:
     AudioEffectMultiply filterMultiply;
     AudioSynthNoiseWhite noise;
     AudioFilterStateVariable filter;
+    // AudioFilterLadder filter;
     AudioEffectEnvelope envelope1;
+    AudioEffectFreeverb reverb;
+    AudioEffectChorus chorus;
+    AudioAnalyzePeak analyze;
+    AudioMixer4 reverbMixer;
+    AudioMixer4 chorusMixer;
 
     AudioConnection pitchPatch, lfoPatch1, filterLevelPatch, lfoPatch2;
     AudioConnection pitchMultiplyPatch, filterMultiplyPatch;
@@ -52,9 +61,13 @@ private:
 
     AudioConnection patchFilter1, patchFilter2;
 
-    AudioConnection patchEnv;
+    AudioConnection patchEnv, patchAnalyze;
+    AudioConnection patchReverb1, patchReverb2, patchReverb3;
+    AudioConnection patchChorus1, patchChorus2, patchChorus3;
 
     VoiceConfiguration _voiceConfiguration;
+
+    short delayBuffer[CHORUS_DELAY_LEN];
 
     uint32_t _timestamp;
     byte _note;
@@ -64,8 +77,9 @@ private:
 
     void configureVoice(bool restart);
     void configureFilter();
+    void configureEffects();
+    void configureOscilators();
     inline void configureEnvelope();
-    inline void configureOscilator(int id, float frequency, float ampliture, float phase);
 };
 
 #endif

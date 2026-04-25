@@ -11,11 +11,13 @@ static constexpr SynthConfigurationFlags FILTER_CHANGED = 0x0002;
 static constexpr SynthConfigurationFlags WAVEFORM_CHANGED = 0x0004;
 static constexpr SynthConfigurationFlags VOLUME_CHANGED = 0x0008;
 static constexpr SynthConfigurationFlags VOICE_CHANGED = 0x0010;
+static constexpr SynthConfigurationFlags EFFECT_CHANGED = 0x0020;
 
 inline bool waveformChanged(SynthConfigurationFlags flags)
 {
     return flags & WAVEFORM_CHANGED;
 }
+
 inline bool filterChanged(SynthConfigurationFlags flags)
 {
     return flags & FILTER_CHANGED;
@@ -34,6 +36,11 @@ inline bool volumeChanged(SynthConfigurationFlags flags)
 inline bool voiceChanged(SynthConfigurationFlags flags)
 {
     return flags & VOICE_CHANGED;
+}
+
+inline bool effectChanged(SynthConfigurationFlags flags)
+{
+    return flags & EFFECT_CHANGED;
 }
 
 class SynthConfiguration
@@ -73,12 +80,20 @@ public:
     float filterGain = 0.5f;
     float voiceGain = 0.5f;
 
+    // Effect parameters
+    bool chorusEnabled = 20;
+    float reverb = 0.0f;
+    bool reverbEnabled = false;
+
     void copy(SynthConfiguration *source)
     {
         attack = source->attack;
         decay = source->decay;
         sustain = source->sustain;
         release = source->release;
+
+        chorusEnabled = source->chorusEnabled;
+        reverb = source->reverb;
 
         detune = source->detune;
         resonance = source->resonance;

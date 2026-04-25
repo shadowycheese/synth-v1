@@ -6,6 +6,7 @@
 #include "Constants.h"
 #include "io/SynthConfigurationOrchestrator.h"
 #include "io/SynthConfigurationMapper.h"
+#include "utils/ClipDetector.h"
 
 AudioOutputI2S i2s1;
 AudioControlSGTL5000 sgtl5000;
@@ -24,6 +25,8 @@ MIDIDevice usbMidi1(myusb);
 
 AudioConnection leftPatch(voiceController.getLeft(), 0, i2s1, 0);
 AudioConnection rightPatch(voiceController.getRight(), 0, i2s1, 1);
+
+ClipDetectorTask clipDetector;
 
 void midiNoteOn(byte channel, byte note, byte velocity)
 {
@@ -50,7 +53,7 @@ void setup()
     Serial.begin(115200);
 
     // Allocate memory for the audio engine
-    AudioMemory(200);
+    AudioMemory(1200);
 
     sgtl5000.muteLineout();
     sgtl5000.volume(0.8);
@@ -111,12 +114,18 @@ inline void logAudioCPU()
 
     if ((loops++ % 3000000) == 0)
     {
-        Serial.printf("CPU Usage: %02.02f%% (Max %02.02f%%)\n", AudioProcessorUsage(), AudioProcessorUsageMax());
+        Serial.printf("CPU Usage: %02.02f%% (Max %02.02f%%) Memory Usage: %d (Max %d)\n",
+                      AudioProcessorUsage(),
+                      AudioProcessorUsageMax(),
+                      AudioMemoryUsage(),
+                      AudioMemoryUsageMax());
     }
 }
 
 void loop()
 {
+    uint32_t microSeconds = micros();
+
     logAudioCPU();
 
     myusb.Task();
@@ -129,6 +138,6 @@ void loop()
     while (usbMidi1.read())
         ;
 
-    configurationOrchestrator.task();
-    voiceController.task();
+    configurationOrchestrator.task(microSeconds);
+    voiceController.task(microSeconds);
 }

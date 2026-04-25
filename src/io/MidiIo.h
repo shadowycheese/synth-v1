@@ -10,9 +10,9 @@
 #define MIDI_INPUT_PITCH 0
 #define MIDI_INPUT_RESONANCE 1
 #define MIDI_INPUT_DETUNE 2
-#define MIDI_INPUT_PW 3
-#define MIDI_INPUT_WAVEFORM0 4
-#define MIDI_INPUT_WAVEFORM1 5
+#define MIDI_INPUT_LFO_FREQUENCY 3
+#define MIDI_INPUT_REVERB 4
+#define MIDI_INPUT_CHORUS 5
 #define MIDI_INPUT_CUTOFF 6
 
 class MidiIo
@@ -35,10 +35,6 @@ public:
     {
         if (control == 7)
         {
-            update(MIDI_INPUT_CUTOFF, 8 * (int)value);
-        }
-        else if (control == 7)
-        {
             update(MIDI_INPUT_RESONANCE, 8 * (int)value);
         }
         else if (control == 74)
@@ -47,15 +43,15 @@ public:
         }
         else if (control == 71)
         {
-            update(MIDI_INPUT_PW, 8 * (int)value);
+            update(MIDI_INPUT_LFO_FREQUENCY, 8 * (int)value);
         }
         else if (control == 72)
         {
-            update(MIDI_INPUT_WAVEFORM0, 8 * (int)value);
+            update(MIDI_INPUT_REVERB, 8 * (int)value);
         }
         else if (control == 73)
         {
-            update(MIDI_INPUT_WAVEFORM1, 8 * (int)value);
+            update(MIDI_INPUT_CHORUS, 8 * (int)value);
         }
     }
 

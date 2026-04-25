@@ -30,9 +30,13 @@ Voice::Voice() : pitchPatch(pitch, 0, pitchMultiply, 0),
 
                  patchFilter1(oscilatorMixerMain, 0, filter, 0),
                  patchFilter2(filterMultiply, 0, filter, 1),
-                 patchEnv(filter, envelope1)
-
-// patchEnv(oscilatorMixerMain, envelope1)
+                 patchEnv(filter, 0, envelope1, 0),
+                 patchReverb1(envelope1, 0, reverbMixer, 0),
+                 patchReverb2(envelope1, 0, reverb, 0),
+                 patchReverb3(reverb, 0, reverbMixer, 1),
+                 patchChorus1(reverbMixer, 0, chorusMixer, 0),
+                 patchChorus2(reverbMixer, 0, chorus, 0),
+                 patchChorus3(chorus, 0, chorusMixer, 1)
 {
     for (int i = 0; i < 4; i++)
     {
@@ -52,6 +56,12 @@ Voice::Voice() : pitchPatch(pitch, 0, pitchMultiply, 0),
     oscilatorMixerMain.gain(0, 1.0f);
     oscilatorMixerMain.gain(1, 1.0f);
 
+    reverbMixer.gain(0, 1.0f);
+    reverbMixer.gain(1, 0.0f);
+
+    chorusMixer.gain(0, 0.5f);
+    chorusMixer.gain(1, 0.5f);
+
     lfo.amplitude(1.0f);
     pitch.amplitude(0.5f);
 
@@ -59,6 +69,8 @@ Voice::Voice() : pitchPatch(pitch, 0, pitchMultiply, 0),
     envelope1.decay(50);
     envelope1.sustain(0.7);
     envelope1.release(300);
+
+    chorus.begin(delayBuffer, CHORUS_DELAY_LEN, 4);
 }
 
 void Voice::noteOn(byte note, float frequency, float amplitude)
@@ -81,6 +93,13 @@ void Voice::noteOff()
 
 void Voice::updateFilter()
 {
+    if (_voiceConfiguration.lfoPulseWidth == 0)
+    {
+        if (analyze.available())
+        {
+            lfo.pulseWidth(analyze.read());
+        }
+    }
 }
 
 void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
@@ -90,6 +109,13 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
         _voiceConfiguration.copyEnvelopeConfiguration(configuration);
 
         configureEnvelope();
+    }
+
+    if (effectChanged(changeFlags))
+    {
+        _voiceConfiguration.copyEffectConfiguration(configuration);
+
+        configureEffects();
     }
 
     bool updateFilter = filterChanged(changeFlags);
@@ -110,26 +136,9 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
 
     if (restartOscillators)
     {
-        Serial.printf("Restart oscilators");
-
         _voiceConfiguration.copyWaveformConfiguration(configuration);
 
-        lfo.begin(_voiceConfiguration.audioWaveformLfo());
-        int wf = _voiceConfiguration.audioWaveform(0);
-
-        Serial.printf("Restart oscilators: %d\n", wf);
-
-        oscillators[0].begin(wf);
-
-        for (int i = 0; i < 3; i++)
-        {
-            uint8_t wf = _voiceConfiguration.audioWaveform(i + 1);
-
-            int l = 1 + (i * 2);
-            int r = l + 1;
-            oscillators[l].begin(wf);
-            oscillators[r].begin(wf);
-        }
+        configureOscilators();
     }
 
     if (envelope1.isActive())
@@ -199,6 +208,34 @@ void Voice::configureVoice(bool restartOscillators)
     }
 }
 
+void Voice::configureEffects()
+{
+    if (_voiceConfiguration.reverbEnabled)
+    {
+        reverb.damping(0.5f);
+        reverb.roomsize(_voiceConfiguration.reverb);
+
+        reverbMixer.gain(0, 1.0f);
+        reverbMixer.gain(1, 0.0f);
+    }
+    else
+    {
+        reverbMixer.gain(0, 0.0f);
+        reverbMixer.gain(1, 1.0f);
+    }
+
+    if (_voiceConfiguration.chorusEnabled)
+    {
+        chorusMixer.gain(0.5, 1.0f);
+        chorusMixer.gain(0.5, 0.0f);
+    }
+    else
+    {
+        chorusMixer.gain(0, 1.0f);
+        chorusMixer.gain(1, 0.0f);
+    }
+}
+
 void Voice::configureFilter()
 {
     if (_voiceConfiguration.autoCutoff)
@@ -209,9 +246,12 @@ void Voice::configureFilter()
     }
     else
     {
-        filter.frequency(_voiceConfiguration.manualCutoff);
-        filter.octaveControl(_voiceConfiguration.octaveControl);
+        float co = _voiceConfiguration.manualCutoff * _frequency * (TWELTH_ROOT_OF_TWO * TWELTH_ROOT_OF_TWO);
+        filter.frequency(co);
+        filter.octaveControl(log2f(12000.0 / co));
     }
+
+    // filter.resonance(_voiceConfiguration.resonance);
 
     filterLevel.amplitude(_voiceConfiguration.filterLevel);
 }
@@ -224,8 +264,22 @@ inline void Voice::configureEnvelope()
     envelope1.release(_voiceConfiguration.release);
 }
 
-inline void Voice::configureOscilator(int id, float frequency, float amplitude, float phase)
+void Voice::configureOscilators()
 {
-    // oscillators[id].phase(phase);
-    // oscillators[id].pulseWidth(_voiceConfiguration.pulseWidth);
+    lfo.begin(_voiceConfiguration.audioWaveformLfo());
+    uint8_t wf = _voiceConfiguration.audioWaveform(0);
+
+    oscillators[0].begin(wf);
+
+    Serial.printf("Restart oscilators: %d\n", wf);
+
+    for (int i = 0; i < 3; i++)
+    {
+        wf = _voiceConfiguration.audioWaveform(i + 1);
+
+        int l = 1 + (i * 2);
+        int r = l + 1;
+        oscillators[l].begin(wf);
+        oscillators[r].begin(wf);
+    }
 }
