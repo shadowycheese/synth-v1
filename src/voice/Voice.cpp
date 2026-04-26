@@ -1,81 +1,9 @@
 #include "../Constants.h"
 #include "Voice.h"
 
-// Constructor: This is where the internal "patching" happens
-Voice::Voice() : pitchPatch(pitch, 0, pitchMultiply, 0),
-                 lfoPatch1(lfo, 0, pitchMultiply, 1),
-
-                 filterLevelPatch(filterLevel, 0, filterMultiply, 0),
-                 lfoPatch2(lfo, 0, filterMultiply, 1),
-
-                 patchOscIn0(pitchMultiply, 0, oscillators[0], 0),
-                 patchOscIn1(pitchMultiply, 0, oscillators[1], 0),
-                 patchOscIn2(pitchMultiply, 0, oscillators[2], 0),
-                 patchOscIn3(pitchMultiply, 0, oscillators[3], 0),
-                 patchOscIn4(pitchMultiply, 0, oscillators[4], 0),
-                 patchOscIn5(pitchMultiply, 0, oscillators[5], 0),
-                 patchOscIn6(pitchMultiply, 0, oscillators[6], 0),
-
-                 patchOscOut0(oscillators[0], 0, oscilatorMixer1, 0),
-                 patchOscOut1(oscillators[1], 0, oscilatorMixer1, 1),
-                 patchOscOut2(oscillators[2], 0, oscilatorMixer1, 2),
-                 patchOscOut3(oscillators[3], 0, oscilatorMixer1, 3),
-                 patchOscOut4(oscillators[4], 0, oscilatorMixer2, 0),
-                 patchOscOut5(oscillators[5], 0, oscilatorMixer2, 1),
-                 patchOscOut6(oscillators[6], 0, oscilatorMixer2, 1),
-                 patchOscOut7(noise, 0, oscilatorMixer2, 3),
-
-                 patchOscMain1(oscilatorMixer1, 0, oscilatorMixerMain, 0),
-                 patchOscMain2(oscilatorMixer2, 0, oscilatorMixerMain, 1),
-
-                 patchFilter1(oscilatorMixerMain, 0, filter, 0),
-                 patchFilter2(filterMultiply, 0, filter, 1),
-                 patchEnv(filter, 0, envelope1, 0),
-                 patchReverb1(envelope1, 0, reverbMixer, 0),
-                 patchReverb2(envelope1, 0, reverb, 0),
-                 patchReverb3(reverb, 0, reverbMixer, 1),
-                 patchChorus1(reverbMixer, 0, chorusMixer, 0),
-                 patchChorus2(reverbMixer, 0, chorus, 0),
-                 patchChorus3(chorus, 0, chorusMixer, 1)
-{
-    for (int i = 0; i < 4; i++)
-    {
-        oscilatorMixer1.gain(i, 1.0f);
-    }
-
-    for (int i = 0; i < 4; i++)
-    {
-        oscilatorMixer2.gain(i, 1.0f);
-    }
-
-    for (int i = 0; i < 7; i++)
-    {
-        oscillators[i].frequencyModulation(2);
-    }
-
-    oscilatorMixerMain.gain(0, 1.0f);
-    oscilatorMixerMain.gain(1, 1.0f);
-
-    reverbMixer.gain(0, 1.0f);
-    reverbMixer.gain(1, 0.0f);
-
-    chorusMixer.gain(0, 0.5f);
-    chorusMixer.gain(1, 0.5f);
-
-    lfo.amplitude(1.0f);
-    pitch.amplitude(0.5f);
-
-    envelope1.attack(10);
-    envelope1.decay(50);
-    envelope1.sustain(0.7);
-    envelope1.release(300);
-
-    chorus.begin(delayBuffer, CHORUS_DELAY_LEN, 4);
-}
-
 void Voice::noteOn(byte note, float frequency, float amplitude)
 {
-    _amplitudeScale = 0.15f;
+    _amplitudeScale = 0.25f;
     _frequency = frequency;
 
     configureVoice(false);
@@ -99,6 +27,13 @@ void Voice::updateFilter()
         {
             lfo.pulseWidth(analyze.read());
         }
+    }
+
+    if (_voiceConfiguration.lfoFrequency == 0)
+    {
+        float freq = _frequency * _voiceConfiguration.pitchBend * (1.0f + _voiceConfiguration.detune);
+
+        lfo.frequency(freq);
     }
 }
 
@@ -141,7 +76,7 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
         configureOscilators();
     }
 
-    if (envelope1.isActive())
+    if (envelope1.isActive() && (restartOscillators || updateVoice))
     {
         configureVoice(restartOscillators);
     }
@@ -162,12 +97,6 @@ void Voice::configureVoice(bool restartOscillators)
                   _amplitudeScale,
                   _voiceConfiguration.detune,
                   _voiceConfiguration.resonance);
-
-    lfo.pulseWidth(_voiceConfiguration.lfoPulseWidth);
-    lfo.frequency(max(0.5, _voiceConfiguration.lfoFrequency));
-    lfo.amplitude(_voiceConfiguration.lfoAmplitude);
-
-    pitch.amplitude(_voiceConfiguration.pitchLevel);
 
     noise.amplitude(_amplitudeScale * _voiceConfiguration.noiseAmplitude);
 
@@ -240,20 +169,38 @@ void Voice::configureFilter()
 {
     if (_voiceConfiguration.autoCutoff)
     {
-        float co = 50 * exp(5.481 * _voiceConfiguration.manualCutoff);
+        float trackingAmount = 1.0f; // Configurable
+        float co = min(15000.0f, (_voiceConfiguration.filterCutoff) + (_frequency * trackingAmount * _voiceConfiguration.pitchBend));
+
         filter.frequency(co);
-        filter.octaveControl(log2f(12000.0 / co));
+        filter.octaveControl(log2f(12000.0f / co));
     }
     else
     {
-        float co = _voiceConfiguration.manualCutoff * _frequency * (TWELTH_ROOT_OF_TWO * TWELTH_ROOT_OF_TWO);
+        float co = 20000.0f;
+
+        co *= _voiceConfiguration.filterCutoff;
+
         filter.frequency(co);
-        filter.octaveControl(log2f(12000.0 / co));
+        filter.octaveControl(log2f(12000.0f / co));
     }
 
-    // filter.resonance(_voiceConfiguration.resonance);
+    if (_voiceConfiguration.lfoPulseWidth > 0)
+    {
+        lfo.pulseWidth(_voiceConfiguration.lfoPulseWidth);
+    }
 
+    if (_voiceConfiguration.lfoFrequency > 0)
+    {
+        lfo.frequency(max(0.5, _voiceConfiguration.lfoFrequency));
+    }
+
+    lfo.amplitude(_voiceConfiguration.lfoAmplitude);
+
+    pitchLevel.amplitude(_voiceConfiguration.pitchLevel);
     filterLevel.amplitude(_voiceConfiguration.filterLevel);
+
+    updateFilter();
 }
 
 inline void Voice::configureEnvelope()
@@ -271,7 +218,7 @@ void Voice::configureOscilators()
 
     oscillators[0].begin(wf);
 
-    Serial.printf("Restart oscilators: %d\n", wf);
+    // Serial.printf("Restart oscilators: %d\n", wf);
 
     for (int i = 0; i < 3; i++)
     {

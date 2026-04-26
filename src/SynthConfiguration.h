@@ -60,7 +60,7 @@ public:
 
     // Filter parameters
     bool autoCutoff;
-    float manualCutoff;
+    float filterCutoff;
     float filterLevel;
     float lfoFrequency;
     float lfoAmplitude;
@@ -102,7 +102,7 @@ public:
         lfoFrequency = source->lfoFrequency;
         lfoPulseWidth = source->lfoPulseWidth;
 
-        manualCutoff = source->manualCutoff;
+        filterCutoff = source->filterCutoff;
         autoCutoff = source->autoCutoff;
 
         noiseAmplitude = source->noiseAmplitude;

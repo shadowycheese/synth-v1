@@ -48,7 +48,7 @@ private:
     Func midiInputs[7] = {
         &SynthConfigurationMapper::updatePitchBend,
         &SynthConfigurationMapper::updateResonance,
-        &SynthConfigurationMapper::updateDetune,
+        &SynthConfigurationMapper::updateLfoPulseWidth,
         &SynthConfigurationMapper::updateLfoFrequency,
         &SynthConfigurationMapper::updateReverb,
         &SynthConfigurationMapper::noOp,
@@ -79,7 +79,7 @@ private:
         &SynthConfigurationMapper::updateWaveform3,
         &SynthConfigurationMapper::updateFilterLevel,
         &SynthConfigurationMapper::updateWaveform2,
-        &SynthConfigurationMapper::updateLfoPulseWidth,
+        &SynthConfigurationMapper::updateDetune,
         &SynthConfigurationMapper::updateWaveform1,
         &SynthConfigurationMapper::updateWaveform0,
         &SynthConfigurationMapper::updateLfoAmplitude,
@@ -334,7 +334,7 @@ private:
 
     int updateLfoPulseWidth(int value)
     {
-        float newValue = getMidScaledValue(value, 2);
+        float newValue = getMidScaledValue(value, 1);
 
         if (newValue != _localSynthConfiguration.lfoPulseWidth)
         {
@@ -352,7 +352,7 @@ private:
     {
         float valueF = getScaledValue(value, 2);
 
-        float newValue = (valueF * 1000.0f) + 0.1f;
+        float newValue = (valueF * 1000.0f);
 
         if (newValue != _localSynthConfiguration.lfoFrequency)
         {
@@ -513,9 +513,9 @@ private:
 
     int updateResonance(int value)
     {
-        float valueF = getScaledValue(value, 2);
+        float valueF = getScaledValue(value, 3);
 
-        float newValue = 1.8f * valueF;
+        float newValue = 0.7f + 4.3f * valueF;
 
         if (newValue != _localSynthConfiguration.resonance)
         {
@@ -533,11 +533,11 @@ private:
     {
         float newValue = getScaledValue(value, 2);
 
-        if (newValue != _localSynthConfiguration.manualCutoff)
+        if (newValue != _localSynthConfiguration.filterCutoff)
         {
             Serial.printf("Cutoff = %0.3f\n", newValue);
 
-            _localSynthConfiguration.manualCutoff = newValue;
+            _localSynthConfiguration.filterCutoff = newValue;
 
             return FILTER_CHANGED;
         }

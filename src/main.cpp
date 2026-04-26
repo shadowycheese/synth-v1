@@ -56,11 +56,12 @@ void setup()
     AudioMemory(1200);
 
     sgtl5000.muteLineout();
-    sgtl5000.volume(0.8);
     sgtl5000.lineOutLevel(31);
     sgtl5000.enable();
 
     sgtl5000.unmuteLineout();
+    sgtl5000.volume(0.3);
+    sgtl5000.unmuteHeadphone();
 
     for (int level = 31; level >= 21; level--)
     {
@@ -126,6 +127,8 @@ void loop()
 {
     uint32_t microSeconds = micros();
 
+    configurationOrchestrator.task(microSeconds);
+
     logAudioCPU();
 
     myusb.Task();
@@ -135,9 +138,8 @@ void loop()
         return;
     }
 
+    voiceController.task(microSeconds);
+
     while (usbMidi1.read())
         ;
-
-    configurationOrchestrator.task(microSeconds);
-    voiceController.task(microSeconds);
 }

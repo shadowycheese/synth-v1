@@ -43,7 +43,7 @@ public:
     {
         autoCutoff = source->autoCutoff;
         resonance = source->resonance;
-        manualCutoff = source->manualCutoff;
+        filterCutoff = source->filterCutoff;
         lfoFrequency = source->lfoFrequency;
         lfoAmplitude = source->lfoAmplitude;
         lfoPulseWidth = source->lfoPulseWidth;
