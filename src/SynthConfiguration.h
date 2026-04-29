@@ -53,10 +53,14 @@ public:
     uint8_t lfoWaveform;
 
     // Envelope parameters
-    float attack = 10;
-    float decay = 50;
-    float sustain = 0.7;
-    float release = 300;
+    float voiceAttack = 10;
+    float voiceDecay = 50;
+    float voiceSustain = 0.7;
+    float voiceRelease = 300;
+    float filterAttack = 10;
+    float filterDecay = 50;
+    float filterSustain = 0.7;
+    float filterRelease = 300;
 
     // Filter parameters
     bool autoCutoff;
@@ -71,39 +75,49 @@ public:
     // Voice parameters
     float pitchBend = 0;
     float detune = 0;
+    bool halfSaw = 0;
     float amplitudes[4];
     float noiseAmplitude;
     float pitchLevel = 0.2;
 
     // Volume parameters
     float masterVolume = 1.0f;
-    float filterGain = 0.5f;
     float voiceGain = 0.5f;
 
     // Effect parameters
-    bool chorusEnabled = 20;
+    bool delayEnabled = 20;
     float reverb = 0.0f;
     bool reverbEnabled = false;
+    float delay = 0.0f;
 
     void copy(SynthConfiguration *source)
     {
-        attack = source->attack;
-        decay = source->decay;
-        sustain = source->sustain;
-        release = source->release;
+        voiceAttack = source->voiceAttack;
+        voiceDecay = source->voiceDecay;
+        voiceSustain = source->voiceSustain;
+        voiceRelease = source->voiceRelease;
 
-        chorusEnabled = source->chorusEnabled;
+        filterAttack = source->filterAttack;
+        filterDecay = source->filterDecay;
+        filterSustain = source->voiceSustain;
+        filterRelease = source->filterRelease;
+
+        delayEnabled = source->delayEnabled;
         reverb = source->reverb;
+        delay = source->delay;
 
+        halfSaw = source->halfSaw;
         detune = source->detune;
         resonance = source->resonance;
         pitchBend = source->pitchBend;
         lfoAmplitude = source->lfoAmplitude;
         lfoFrequency = source->lfoFrequency;
         lfoPulseWidth = source->lfoPulseWidth;
+        octaveControl = source->octaveControl;
 
         filterCutoff = source->filterCutoff;
         autoCutoff = source->autoCutoff;
+        filterLevel = source->filterLevel;
 
         noiseAmplitude = source->noiseAmplitude;
         lfoWaveform = source->lfoWaveform;
@@ -115,7 +129,6 @@ public:
         }
 
         masterVolume = source->masterVolume;
-        filterGain = source->filterGain;
         voiceGain = source->voiceGain;
     }
 };

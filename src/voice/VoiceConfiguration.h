@@ -16,16 +16,22 @@ public:
 
     void copyEnvelopeConfiguration(SynthConfiguration *source)
     {
-        attack = source->attack;
-        decay = source->decay;
-        sustain = source->sustain;
-        release = source->release;
+        voiceAttack = source->voiceAttack;
+        voiceDecay = source->voiceDecay;
+        voiceSustain = source->voiceSustain;
+        voiceRelease = source->voiceRelease;
+
+        filterAttack = source->filterAttack;
+        filterDecay = source->filterDecay;
+        filterSustain = source->voiceSustain;
+        filterRelease = source->filterRelease;
     }
 
     void copyEffectConfiguration(SynthConfiguration *source)
     {
         reverb = source->reverb;
-        chorusEnabled = source->chorusEnabled;
+        delay = source->delay;
+        delayEnabled = source->delayEnabled;
         reverbEnabled = source->reverbEnabled;
     }
 
@@ -48,6 +54,7 @@ public:
         lfoAmplitude = source->lfoAmplitude;
         lfoPulseWidth = source->lfoPulseWidth;
         filterLevel = source->filterLevel;
+        octaveControl = source->octaveControl;
     }
 
     void copyVoiceConfiguration(SynthConfiguration *source)
@@ -55,6 +62,7 @@ public:
         detune = source->detune;
         noiseAmplitude = source->noiseAmplitude;
         pitchBend = source->pitchBend;
+        halfSaw = source->halfSaw;
 
         for (int i = 0; i < 4; i++)
         {
@@ -65,9 +73,9 @@ public:
     void copyVolumeConfiguration(SynthConfiguration *source)
     {
         masterVolume = source->masterVolume;
-        filterGain = source->filterGain;
         voiceGain = source->voiceGain;
         pitchLevel = source->pitchLevel;
+        filterLevel = source->filterLevel;
     }
 
     static constexpr int WaveFormMap[8] = {
@@ -82,16 +90,9 @@ public:
 
     static constexpr float CENTS[4] = {
         0.0f,
-        2.0f,
-        4.0f,
-        7.0f};
-
-    static constexpr float SUPER_SAW_GAIN_OFFSET[4] = {
-        -0.3f,
-        0.1f,
-        0.3f,
-        0.6f,
-    };
+        TWELTH_ROOT_OF_TWO,
+        3 * TWELTH_ROOT_OF_TWO,
+        5 * TWELTH_ROOT_OF_TWO};
 };
 
 #endif

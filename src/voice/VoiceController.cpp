@@ -1,5 +1,7 @@
 #include "VoiceController.h"
 
+const int VU_PIN = 33;
+
 VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1, 0),
                                      patch1(voicePool[1].getOutput(), 0, mixer1, 1),
                                      patch2(voicePool[2].getOutput(), 0, mixer1, 2),
@@ -16,13 +18,15 @@ VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1,
                                      patchLeft(masterMix, 0, left, 0),
                                      patchRight(masterMix, 0, right, 1),
 
+                                     patchPeak(masterMix, 0, peak, 0),
+
                                      voiceUpdates("Voice Updates"),
                                      filterUpdates("Filter Updates")
 {
     for (int i = 0; i < 4; i++)
     {
-        mixer1.gain(i, 0.2f);
-        mixer2.gain(i, 0.2f);
+        mixer1.gain(i, 0.25f);
+        mixer2.gain(i, 0.25f);
     }
 
     masterMix.gain(0, 1.0f);
@@ -32,6 +36,10 @@ VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1,
     right.gain(0, 1.0f);
 
     nextVoiceUpdateTime = millis();
+
+    pinMode(VU_PIN, OUTPUT);
+    analogWriteFrequency(VU_PIN, 22000);
+    analogWriteResolution(8);
 }
 
 void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
@@ -40,8 +48,8 @@ void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configurat
     {
         for (int i = 0; i < 4; i++)
         {
-            mixer1.gain(i, configuration->voiceGain);
-            mixer2.gain(i, configuration->voiceGain);
+            masterMix.gain(i, configuration->voiceGain * 10.0f);
+            masterMix.gain(i, configuration->voiceGain * 10.0f);
         }
     }
 
@@ -106,8 +114,22 @@ int VoiceController::findOldestVoice(byte note)
     return oldest;
 }
 
+int count = 0;
+float max1 = 0.0f;
+float longtermMax = 0.0f;
+
 void VoiceController::updateVoiceFilters(uint32_t microSeconds)
 {
+    if (peak.available())
+    {
+        float pk = peak.read();
+
+        pk = pow(pk, 0.4);
+
+        analogWrite(VU_PIN, (int)(255.0f * pk));
+
+        max1 = max(max1, pk);
+    }
     // Handle millis wrapping
     if (microSeconds >= nextFilterUpdateTime)
     {
@@ -122,6 +144,15 @@ void VoiceController::updateVoiceFilters(uint32_t microSeconds)
         if (nextFilterToUpdate == 0)
         {
             filterUpdates.inc(microSeconds);
+
+            if (count++ > 1000)
+            {
+                longtermMax = max(max1, longtermMax);
+
+                Serial.printf("Max levels %0.4f (%0.4f)\n", max1, longtermMax);
+                max1 = 0;
+                count = 0;
+            }
         }
     }
 }

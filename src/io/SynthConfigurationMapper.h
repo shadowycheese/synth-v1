@@ -51,14 +51,14 @@ private:
         &SynthConfigurationMapper::updateLfoPulseWidth,
         &SynthConfigurationMapper::updateLfoFrequency,
         &SynthConfigurationMapper::updateReverb,
-        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::updateOctaveControl,
         &SynthConfigurationMapper::noOp};
 
     Func mux1Inputs[16] = {
-        &SynthConfigurationMapper::updateAttack,
-        &SynthConfigurationMapper::updateDecay,
-        &SynthConfigurationMapper::updateSustain,
-        &SynthConfigurationMapper::updateRelease,
+        &SynthConfigurationMapper::updateVoiceAttack,
+        &SynthConfigurationMapper::updateVoiceDecay,
+        &SynthConfigurationMapper::updateVoiceSustain,
+        &SynthConfigurationMapper::updateVoiceRelease,
         &SynthConfigurationMapper::updateManualCutoff,
         &SynthConfigurationMapper::updateNoiseAmplitude,
         &SynthConfigurationMapper::updateOscillatorAmplitude3,
@@ -66,11 +66,11 @@ private:
         &SynthConfigurationMapper::updateOscillatorAmplitude1,
         &SynthConfigurationMapper::updateOscillatorAmplitude0,
         &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp};
+        &SynthConfigurationMapper::updateFilterRelease,
+        &SynthConfigurationMapper::updateDelay,
+        &SynthConfigurationMapper::updateFilterSustain,
+        &SynthConfigurationMapper::updateFilterDecay,
+        &SynthConfigurationMapper::updateFilterAttack};
 
     Func mux2Inputs[16] = {
         &SynthConfigurationMapper::updateVoiceGain,
@@ -85,8 +85,8 @@ private:
         &SynthConfigurationMapper::updateLfoAmplitude,
         &SynthConfigurationMapper::updateAutoCutoff,
         &SynthConfigurationMapper::updateReverbEnabled,
-        &SynthConfigurationMapper::updateChorusEnabled,
-        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::updateDelayEnabled,
+        &SynthConfigurationMapper::updateHalfSaw,
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
     };
@@ -113,15 +113,15 @@ private:
     int _changeFlags;
 
     // Envelope
-    int updateAttack(int value)
+    int updateVoiceAttack(int value)
     {
         float newValue = value / 2.0f;
 
-        if (newValue != _localSynthConfiguration.attack)
+        if (newValue != _localSynthConfiguration.voiceAttack)
         {
-            Serial.printf("Attack %f\n", newValue);
+            Serial.printf("Voice Attack %f\n", newValue);
 
-            _localSynthConfiguration.attack = newValue;
+            _localSynthConfiguration.voiceAttack = newValue;
 
             return ENVELOPE_CHANGED;
         }
@@ -129,15 +129,15 @@ private:
         return 0;
     }
 
-    int updateDecay(int value)
+    int updateVoiceDecay(int value)
     {
         float newValue = value / 2.0f;
 
-        if (newValue != _localSynthConfiguration.decay)
+        if (newValue != _localSynthConfiguration.voiceDecay)
         {
-            Serial.printf("Decay %f\n", newValue);
+            Serial.printf("Voice Decay %f\n", newValue);
 
-            _localSynthConfiguration.decay = newValue;
+            _localSynthConfiguration.voiceDecay = newValue;
 
             return ENVELOPE_CHANGED;
         }
@@ -145,15 +145,15 @@ private:
         return 0;
     }
 
-    int updateSustain(int value)
+    int updateVoiceSustain(int value)
     {
         float newValue = value / 2.0f;
 
-        if (newValue != _localSynthConfiguration.sustain)
+        if (newValue != _localSynthConfiguration.voiceSustain)
         {
-            Serial.printf("Sustain %f\n", newValue);
+            Serial.printf("Voice Sustain %f\n", newValue);
 
-            _localSynthConfiguration.sustain = newValue;
+            _localSynthConfiguration.voiceSustain = newValue;
 
             return ENVELOPE_CHANGED;
         }
@@ -161,15 +161,87 @@ private:
         return 0;
     }
 
-    int updateRelease(int value)
+    int updateVoiceRelease(int value)
     {
-        float newValue = value * 5.0f;
+        float newValue = value * 1.0f;
 
-        if (newValue != _localSynthConfiguration.release)
+        if (newValue != _localSynthConfiguration.voiceRelease)
         {
-            Serial.printf("Release %f\n", newValue);
+            Serial.printf("Voice Release %f\n", newValue);
 
-            _localSynthConfiguration.release = newValue;
+            _localSynthConfiguration.voiceRelease = newValue;
+
+            return ENVELOPE_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateFilterAttack(int value)
+    {
+        value = 1023 - value;
+
+        float newValue = value / 2.0f;
+
+        if (newValue != _localSynthConfiguration.filterAttack)
+        {
+            Serial.printf("Filter Attack %f\n", newValue);
+
+            _localSynthConfiguration.filterAttack = newValue;
+
+            return ENVELOPE_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateFilterDecay(int value)
+    {
+        value = 1023 - value;
+
+        float newValue = value / 2.0f;
+
+        if (newValue != _localSynthConfiguration.filterDecay)
+        {
+            Serial.printf("Filter Decay %f\n", newValue);
+
+            _localSynthConfiguration.filterDecay = newValue;
+
+            return ENVELOPE_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateFilterSustain(int value)
+    {
+        value = 1023 - value;
+
+        float newValue = value / 2.0f;
+
+        if (newValue != _localSynthConfiguration.filterSustain)
+        {
+            Serial.printf("Filter Sustain %f\n", newValue);
+
+            _localSynthConfiguration.filterSustain = newValue;
+
+            return ENVELOPE_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateFilterRelease(int value)
+    {
+        value = 1023 - value;
+
+        float newValue = value * 1.0f;
+
+        if (newValue != _localSynthConfiguration.filterRelease)
+        {
+            Serial.printf("Filter Release %f\n", newValue);
+
+            _localSynthConfiguration.filterRelease = newValue;
 
             return ENVELOPE_CHANGED;
         }
@@ -187,22 +259,6 @@ private:
             Serial.printf("Voice Gain %f\n", newValue);
 
             _localSynthConfiguration.voiceGain = newValue;
-
-            return VOLUME_CHANGED;
-        }
-
-        return 0;
-    }
-
-    int updateFilterGain(int value)
-    {
-        float newValue = value / 1023.0f;
-
-        if (newValue != _localSynthConfiguration.filterGain)
-        {
-            Serial.printf("Filter Gain %f\n", newValue);
-
-            _localSynthConfiguration.filterGain = newValue;
 
             return VOLUME_CHANGED;
         }
@@ -334,7 +390,7 @@ private:
 
     int updateLfoPulseWidth(int value)
     {
-        float newValue = getMidScaledValue(value, 1);
+        float newValue = 2.0f * (0.5f - getScaledValue(value, 1));
 
         if (newValue != _localSynthConfiguration.lfoPulseWidth)
         {
@@ -384,8 +440,8 @@ private:
 
     int updateOctaveControl(int value)
     {
-        float valueF = getMidScaledValue(value, 1);
-        float newValue = valueF * 8.0f;
+        float valueF = getScaledValue(value, 1);
+        float newValue = valueF * 7.0f;
 
         if (newValue != _localSynthConfiguration.octaveControl)
         {
@@ -479,15 +535,17 @@ private:
         return 0;
     }
 
-    int updateChorusEnabled(int value)
+    int updateDelay(int value)
     {
-        bool newValue = value >= 512 ? true : false;
+        value = 1023 - value;
 
-        if (newValue != _localSynthConfiguration.chorusEnabled)
+        float newValue = getScaledValue(value, 1) * 250.0f;
+
+        if (newValue != _localSynthConfiguration.delay)
         {
-            Serial.printf("Chorus Enabled = %s\n", newValue ? "true" : "false");
+            Serial.printf("Delay = %0.3f\n", newValue);
 
-            _localSynthConfiguration.chorusEnabled = newValue;
+            _localSynthConfiguration.delay = newValue;
 
             return EFFECT_CHANGED;
         }
@@ -495,9 +553,41 @@ private:
         return 0;
     }
 
+    int updateDelayEnabled(int value)
+    {
+        bool newValue = value >= 512 ? true : false;
+
+        if (newValue != _localSynthConfiguration.delayEnabled)
+        {
+            Serial.printf("Delay Enabled = %s\n", newValue ? "true" : "false");
+
+            _localSynthConfiguration.delayEnabled = newValue;
+
+            return EFFECT_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateHalfSaw(int value)
+    {
+        bool newValue = value >= 512 ? true : false;
+
+        if (newValue != _localSynthConfiguration.halfSaw)
+        {
+            Serial.printf("Half Saw Enabled = %s\n", newValue ? "true" : "false");
+
+            _localSynthConfiguration.halfSaw = newValue;
+
+            return VOICE_CHANGED;
+        }
+
+        return 0;
+    }
+
     int updateDetune(int value)
     {
-        float valueF = getScaledValue(value, 3);
+        float valueF = getScaledValue(value, 2);
 
         if (valueF != _localSynthConfiguration.detune)
         {
@@ -531,7 +621,7 @@ private:
 
     int updateManualCutoff(int value)
     {
-        float newValue = getScaledValue(value, 2);
+        float newValue = getScaledValue(value, 1);
 
         if (newValue != _localSynthConfiguration.filterCutoff)
         {

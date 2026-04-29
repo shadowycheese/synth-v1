@@ -8,87 +8,54 @@
 #include "VoiceConfiguration.h"
 #include "../utils/ClipDetector.h"
 
-#define CHORUS_DELAY_LEN (44100 * 40 / 1000) // 35ms
+#define CHORUS_DELAY_LEN (AUDIO_BLOCK_SAMPLES * 50) // 35ms
 
 class Voice : public SynthConfigurationListener
 {
 public:
-    Voice() : pitchPatch(pitchLevel, 0, pitchMultiply, 0),
-              lfoPatch1(lfo, 0, pitchMultiply, 1),
+    Voice() : patch1(pitchLevel, 0, pitchMultiply, 0),
+              patch2(lfo, 0, pitchMultiply, 1),
 
-              filterLevelPatch(filterLevel, 0, filterMultiply, 0),
-              lfoPatch2(lfo, 0, filterMultiply, 1),
+              patch3(filterLevel, 0, filterMultiply1, 0),
+              patch4(lfo, 0, filterMultiply1, 1),
 
-              patchOscIn0(pitchMultiply, 0, oscillators[0], 0),
-              patchOscIn1(pitchMultiply, 0, oscillators[1], 0),
-              patchOscIn2(pitchMultiply, 0, oscillators[2], 0),
-              patchOscIn3(pitchMultiply, 0, oscillators[3], 0),
-              patchOscIn4(pitchMultiply, 0, oscillators[4], 0),
-              patchOscIn5(pitchMultiply, 0, oscillators[5], 0),
-              patchOscIn6(pitchMultiply, 0, oscillators[6], 0),
+              patch5(pitchMultiply, 0, oscillators[0], 0),
+              patch6(pitchMultiply, 0, oscillators[1], 0),
+              patch7(pitchMultiply, 0, oscillators[2], 0),
+              patch8(pitchMultiply, 0, oscillators[3], 0),
+              patch9(pitchMultiply, 0, oscillators[4], 0),
+              patch10(pitchMultiply, 0, oscillators[5], 0),
+              patch11(pitchMultiply, 0, oscillators[6], 0),
 
-              patchOscOut0(oscillators[0], 0, oscilatorMixer1, 0),
-              patchOscOut1(oscillators[1], 0, oscilatorMixer1, 1),
-              patchOscOut2(oscillators[2], 0, oscilatorMixer1, 2),
-              patchOscOut3(oscillators[3], 0, oscilatorMixer1, 3),
-              patchOscOut4(oscillators[4], 0, oscilatorMixer2, 0),
-              patchOscOut5(oscillators[5], 0, oscilatorMixer2, 1),
-              patchOscOut6(oscillators[6], 0, oscilatorMixer2, 1),
-              patchOscOut7(noise, 0, oscilatorMixer2, 3),
+              patch12(oscillators[0], 0, oscilatorMixer1, 0),
+              patch13(oscillators[1], 0, oscilatorMixer1, 1),
+              patch14(oscillators[2], 0, oscilatorMixer1, 2),
+              patch15(oscillators[3], 0, oscilatorMixer1, 3),
+              patch16(oscillators[4], 0, oscilatorMixer2, 0),
+              patch17(oscillators[5], 0, oscilatorMixer2, 1),
+              patch18(oscillators[6], 0, oscilatorMixer2, 1),
+              patch19(noise, 0, oscilatorMixer2, 3),
 
-              patchOscMain1(oscilatorMixer1, 0, oscilatorMixerMain, 0),
-              patchOscMain2(oscilatorMixer2, 0, oscilatorMixerMain, 1),
+              patch20(oscilatorMixer1, 0, oscilatorMixerMain, 0),
+              patch21(oscilatorMixer2, 0, oscilatorMixerMain, 1),
 
-              patchFilter1(oscilatorMixerMain, 0, filter, 0),
-              patchFilter2(filterMultiply, 0, filter, 1),
-              patchEnv(filter, 0, envelope1, 0),
-              patchReverb1(envelope1, 0, reverbMixer, 0),
-              patchReverb2(envelope1, 0, reverb, 0),
-              patchReverb3(reverb, 0, reverbMixer, 1),
-              patchChorus1(reverbMixer, 0, chorusMixer, 0),
-              patchChorus2(reverbMixer, 0, chorus, 0),
-              patchChorus3(chorus, 0, chorusMixer, 1)
+              patch22(filterLevel, 0, filterMultiply2, 0),
+              patch23(filterLfo, 0, filterMultiply2, 1),
+              patch24(filterMultiply2, 0, envelopeFilter, 0),
+              patch25(oscilatorMixerMain, 0, filter, 0),
+              patch26(envelopeFilter, 0, filter, 1),
+              patch27(filter, 0, envelopeVoice, 0),
+              patch28(envelopeVoice, 0, delayMixer, 0),
+              patch29(delayMixer, 0, delay, 0),
+              patch30(delay, 0, delayMixer, 1)
     {
-        for (int i = 0; i < 4; i++)
-        {
-            oscilatorMixer1.gain(i, 1.0f);
-        }
-
-        for (int i = 0; i < 4; i++)
-        {
-            oscilatorMixer2.gain(i, 1.0f);
-        }
-
-        for (int i = 0; i < 7; i++)
-        {
-            // oscillators[i].frequencyModulation(2);
-            oscillators[i].phaseModulation(180.0f);
-        }
-
-        oscilatorMixerMain.gain(0, 1.0f);
-        oscilatorMixerMain.gain(1, 1.0f);
-
-        reverbMixer.gain(0, 1.0f);
-        reverbMixer.gain(1, 0.0f);
-
-        chorusMixer.gain(0, 0.5f);
-        chorusMixer.gain(1, 0.5f);
-
-        lfo.amplitude(1.0f);
-        pitchLevel.amplitude(0.5f);
-
-        envelope1.attack(10);
-        envelope1.decay(50);
-        envelope1.sustain(0.7);
-        envelope1.release(300);
-
-        chorus.begin(delayBuffer, CHORUS_DELAY_LEN, 4);
+        init();
     };
 
     void noteOn(byte note, float frequency, float velocity);
     void noteOff();
 
-    AudioStream &getOutput() { return chorusMixer; }
+    AudioStream &getOutput() { return delayMixer; }
 
     float volume();
     bool isPlaying();
@@ -103,41 +70,33 @@ private:
     AudioMixer4 oscilatorMixer2;
     AudioMixer4 oscilatorMixerMain;
 
+    AudioSynthWaveform filterLfo;
     AudioSynthWaveformDc pitchLevel;
     AudioSynthWaveformDc filterLevel;
     AudioSynthWaveformModulated oscillators[7];
     AudioSynthWaveform lfo;
     AudioEffectMultiply pitchMultiply;
-    AudioEffectMultiply filterMultiply;
+    AudioEffectMultiply filterMultiply1;
+    AudioEffectMultiply filterMultiply2;
     AudioSynthNoiseWhite noise;
     AudioFilterStateVariable filter;
-    AudioEffectEnvelope envelope1;
+    AudioEffectEnvelope envelopeVoice;
+    AudioEffectEnvelope envelopeFilter;
     AudioEffectFreeverb reverb;
-    AudioEffectChorus chorus;
+    AudioEffectDelay delay;
     AudioAnalyzePeak analyze;
     AudioMixer4 reverbMixer;
-    AudioMixer4 chorusMixer;
+    AudioMixer4 delayMixer;
 
-    AudioConnection pitchPatch, lfoPatch1, filterLevelPatch, lfoPatch2;
-    AudioConnection pitchMultiplyPatch, filterMultiplyPatch;
-
-    AudioConnection patchOscIn0, patchOscIn1, patchOscIn2, patchOscIn3;
-    AudioConnection patchOscIn4, patchOscIn5, patchOscIn6;
-
-    AudioConnection patchOscOut0, patchOscOut1, patchOscOut2, patchOscOut3;
-    AudioConnection patchOscOut4, patchOscOut5, patchOscOut6, patchOscOut7;
-
-    AudioConnection patchOscMain1, patchOscMain2;
-
-    AudioConnection patchFilter1, patchFilter2;
-
-    AudioConnection patchEnv, patchAnalyze;
-    AudioConnection patchReverb1, patchReverb2, patchReverb3;
-    AudioConnection patchChorus1, patchChorus2, patchChorus3;
+    AudioConnection patch1, patch2, patch3, patch4, patch5, patch6, patch7, patch8;
+    AudioConnection patch9, patch10, patch11, patch12, patch13, patch14, patch15, patch16;
+    AudioConnection patch17, patch18, patch19, patch20, patch21, patch22, patch23, patch24;
+    AudioConnection patch25, patch26, patch27, patch28, patch29, patch30, patch31, patch32;
+    AudioConnection patch33, patch34, patch35;
 
     VoiceConfiguration _voiceConfiguration;
 
-    short delayBuffer[CHORUS_DELAY_LEN];
+    // short delayBuffer[CHORUS_DELAY_LEN];
 
     uint32_t _timestamp;
     byte _note;
@@ -145,6 +104,7 @@ private:
     float _amplitudeScale;
     uint32_t _iteration;
 
+    void init();
     void configureVoice(bool restart);
     void configureFilter();
     void configureEffects();

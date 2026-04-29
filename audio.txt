@@ -1,0 +1,67 @@
+#include <Audio.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <SD.h>
+#include <SerialFlash.h>
+
+// GUItool: begin automatically generated code
+AudioSynthWaveformDc     lfoShaper; //xy=125.16667175292969,374.1666564941406
+AudioSynthWaveformDc     pitchLevel;            //xy=155.16668701171875,299.16668701171875
+AudioSynthWaveformDc     filterLevel;            //xy=155.16668701171875,477.1666564941406
+AudioSynthWaveformModulated lfo;   //xy=274.16668701171875,356.16668701171875
+AudioSynthWaveform       waveform1;      //xy=367,1724
+AudioEffectMultiply      filterMultiply;      //xy=432.16668701171875,535.1666870117188
+AudioEffectMultiply      pitchMultiply;      //xy=445.16668701171875,283.1666564941406
+AudioSynthWaveformDc     oscillatorShaper;            //xy=485.16668701171875,378.16668701171875
+AudioSynthWaveformModulated waveformMod1;   //xy=533,1727
+AudioSynthNoiseWhite     noise1;         //xy=829.1666870117188,531.1666870117188
+AudioSynthWaveformModulated oscillator[5];  //xy=834.1666870117188,270.1666564941406
+AudioSynthWaveformModulated oscillator[0];   //xy=834.1666717529297,381.1666717529297
+AudioSynthWaveformModulated oscillator[3];   //xy=835.1666870117188,307.16668701171875
+AudioSynthWaveformModulated oscillator[4];   //xy=837.1666870117188,455.1666564941406
+AudioSynthWaveformModulated oscillator[6];   //xy=837.1666870117188,492.1666564941406
+AudioSynthWaveformModulated oscillator[1];   //xy=838.1666870117188,344.16668701171875
+AudioSynthWaveformModulated oscillator[2];   //xy=840.1666870117188,418.16668701171875
+AudioFilterStateVariable filter1;        //xy=883.1666870117188,631.1666870117188
+AudioEffectFreeverbStereo freeverbs1;     //xy=936.1666717529297,2071.1666717529297
+AudioMixer4              voiceMixer1;         //xy=1031.1666259765625,346.16668701171875
+AudioMixer4              voiceMixer2;         //xy=1033.1666717529297,440.1666717529297
+AudioEffectEnvelope      envelope1;      //xy=1083.1666717529297,654.1666717529297
+AudioMixer4              voceMixerMain;         //xy=1210.1666259765625,394.16668701171875
+AudioEffectChorus        chorus1;        //xy=1289.1666259765625,702.1666870117188
+AudioOutputI2S           i2s1;           //xy=1464.1666717529297,722.1666717529297
+AudioConnection          patchCord1(lfoShaper, 0, lfo, 1);
+AudioConnection          patchCord2(pitchLevel, 0, pitchMultiply, 0);
+AudioConnection          patchCord3(filterLevel, 0, filterMultiply, 1);
+AudioConnection          patchCord4(lfo, 0, filterMultiply, 0);
+AudioConnection          patchCord5(lfo, 0, pitchMultiply, 1);
+AudioConnection          patchCord6(filterMultiply, 0, filter1, 1);
+AudioConnection          patchCord7(pitchMultiply, 0, oscillator[5], 0);
+AudioConnection          patchCord8(pitchMultiply, 0, oscillator[3], 0);
+AudioConnection          patchCord9(pitchMultiply, 0, oscillator[1], 0);
+AudioConnection          patchCord10(pitchMultiply, 0, oscillator[0], 0);
+AudioConnection          patchCord11(pitchMultiply, 0, oscillator[2], 0);
+AudioConnection          patchCord12(pitchMultiply, 0, oscillator[6], 0);
+AudioConnection          patchCord13(oscillatorShaper, 0, oscillator[5], 1);
+AudioConnection          patchCord14(oscillatorShaper, 0, oscillator[3], 1);
+AudioConnection          patchCord15(oscillatorShaper, 0, oscillator[1], 1);
+AudioConnection          patchCord16(oscillatorShaper, 0, oscillator[0], 1);
+AudioConnection          patchCord17(oscillatorShaper, 0, oscillator[2], 1);
+AudioConnection          patchCord18(oscillatorShaper, 0, oscillator[4], 0);
+AudioConnection          patchCord19(oscillatorShaper, 0, oscillator[6], 1);
+AudioConnection          patchCord20(noise1, 0, voiceMixer2, 3);
+AudioConnection          patchCord21(oscillator[5], 0, voiceMixer1, 0);
+AudioConnection          patchCord22(oscillator[0], 0, voiceMixer1, 3);
+AudioConnection          patchCord23(oscillator[3], 0, voiceMixer1, 1);
+AudioConnection          patchCord24(oscillator[4], 0, voiceMixer2, 1);
+AudioConnection          patchCord25(oscillator[6], 0, voiceMixer2, 2);
+AudioConnection          patchCord26(oscillator[1], 0, voiceMixer1, 2);
+AudioConnection          patchCord27(oscillator[2], 0, voiceMixer2, 0);
+AudioConnection          patchCord28(filter1, 0, envelope1, 0);
+AudioConnection          patchCord29(voiceMixer1, 0, voceMixerMain, 0);
+AudioConnection          patchCord30(voiceMixer2, 0, voceMixerMain, 1);
+AudioConnection          patchCord31(envelope1, chorus1);
+AudioConnection          patchCord32(envelope1, 0, lfo, 0);
+AudioConnection          patchCord33(voceMixerMain, 0, filter1, 0);
+AudioConnection          patchCord34(chorus1, 0, i2s1, 0);
+// GUItool: end automatically generated code

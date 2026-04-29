@@ -38,13 +38,14 @@ private:
     AudioMixer4 masterMix;
     AudioMixer4 left;
     AudioMixer4 right;
+    AudioAnalyzePeak peak;
 
     AudioConnection patch0, patch1, patch2, patch3;
     AudioConnection patch4, patch5, patch6, patch7;
 
     AudioConnection patchM1, patchM2, patchMaster;
 
-    AudioConnection patchLeft, patchRight;
+    AudioConnection patchLeft, patchRight, patchPeak;
 
     byte notesVoiceMap[256];
 
