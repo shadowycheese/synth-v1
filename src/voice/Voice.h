@@ -47,7 +47,12 @@ public:
               patch27(filter, 0, envelopeVoice, 0),
               patch28(envelopeVoice, 0, delayMixer, 0),
               patch29(delayMixer, 0, delay, 0),
-              patch30(delay, 0, delayMixer, 1)
+              patch30(delay, 0, delayMixer, 1),
+
+              patch31(delayMixer, 0, reverb, 0),
+              patch32(delayMixer, 0, reverbMixer, 0),
+              patch33(reverb, 0, reverbMixer, 1)
+
     {
         init();
     };
@@ -92,7 +97,7 @@ private:
     AudioConnection patch9, patch10, patch11, patch12, patch13, patch14, patch15, patch16;
     AudioConnection patch17, patch18, patch19, patch20, patch21, patch22, patch23, patch24;
     AudioConnection patch25, patch26, patch27, patch28, patch29, patch30, patch31, patch32;
-    AudioConnection patch33, patch34, patch35;
+    AudioConnection patch33; //, patch34, patch35;
 
     VoiceConfiguration _voiceConfiguration;
 

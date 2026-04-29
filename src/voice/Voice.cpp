@@ -194,16 +194,13 @@ void Voice::configureEffects()
 {
     if (_voiceConfiguration.reverbEnabled)
     {
-        reverb.damping(0.5f);
-        reverb.roomsize(_voiceConfiguration.reverb);
-
-        reverbMixer.gain(0, 1.0f);
-        reverbMixer.gain(1, 0.0f);
+        reverbMixer.gain(0, 0.0f);
+        reverbMixer.gain(1, 1.0f);
     }
     else
     {
-        reverbMixer.gain(0, 0.0f);
-        reverbMixer.gain(1, 1.0f);
+        reverbMixer.gain(0, 1.0f);
+        reverbMixer.gain(1, 0.0f);
     }
 
     if (_voiceConfiguration.delayEnabled)
@@ -217,6 +214,8 @@ void Voice::configureEffects()
         delayMixer.gain(1, 0.0f);
     }
 
+    reverb.damping(1.0f - _voiceConfiguration.reverb);
+    reverb.roomsize(_voiceConfiguration.reverb);
     delay.delay(0, _voiceConfiguration.delay);
 }
 
