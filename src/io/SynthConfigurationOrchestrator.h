@@ -15,10 +15,12 @@ enum ReadState : uint8_t
 };
 
 #define MUX_ENABLE_PIN 28
-#define MUX_SELECT3_PIN 32
-#define MUX_SELECT2_PIN 31
-#define MUX_SELECT1_PIN 30
-#define MUX_SELECT0_PIN 29
+#define MUX_SELECT3_PIN 29
+#define MUX_SELECT2_PIN 30
+#define MUX_SELECT1_PIN 31
+#define MUX_SELECT0_PIN 32
+
+#define DEBUG 1
 
 const int MUX_COUNT = 1;
 
@@ -27,6 +29,7 @@ class SynthConfigurationOrchestrator
 public:
     SynthConfigurationOrchestrator(ControllerIoListener *controllerListener) : mux1(INPUT_GROUP_MUX1, 16),
                                                                                mux2(INPUT_GROUP_MUX2, 16),
+                                                                               mux3(INPUT_GROUP_MUX3, 16),
                                                                                ioReads("IO Read Cycles"),
                                                                                commits("IO Commits")
     {
@@ -51,10 +54,10 @@ public:
         switch (_state)
         {
         case STATE_SELECT_MUX:
-            digitalWriteFast(MUX_SELECT0_PIN, (_currentInput & 1) > 0 ? HIGH : LOW);
-            digitalWriteFast(MUX_SELECT1_PIN, (_currentInput & 2) > 0 ? HIGH : LOW);
-            digitalWriteFast(MUX_SELECT2_PIN, (_currentInput & 4) > 0 ? HIGH : LOW);
-            digitalWriteFast(MUX_SELECT3_PIN, (_currentInput & 8) > 0 ? HIGH : LOW);
+            digitalWriteFast(MUX_SELECT3_PIN, (_currentInput & 8) ? HIGH : LOW);
+            digitalWriteFast(MUX_SELECT2_PIN, (_currentInput & 4) ? HIGH : LOW);
+            digitalWriteFast(MUX_SELECT1_PIN, (_currentInput & 2) ? HIGH : LOW);
+            digitalWriteFast(MUX_SELECT0_PIN, (_currentInput & 1) ? HIGH : LOW);
             _readTime = microSeconds + 20;
             _state = STATE_WAIT_MUX;
             break;
@@ -67,6 +70,7 @@ public:
         case STATE_READ_MUX:
             mux1.read(_currentInput);
             mux2.read(_currentInput);
+            mux3.read(_currentInput);
 
             _state = STATE_SELECT_MUX;
             _currentInput = (_currentInput + 1) & 0xF;
@@ -92,20 +96,34 @@ private:
     uint32_t _notifyTime;
     MuxIo mux1;
     MuxIo mux2;
+    MuxIo mux3;
     MidiIo midiIo;
 
     CallCounter ioReads;
     CallCounter commits;
 
+    float _debugWrite = 0;
+
     void updateSynthConfiguration(uint32_t microSeconds)
     {
         if (microSeconds >= _notifyTime)
         {
-            // mux1.debug();
-            // mux2.debug();
+            if (DEBUG)
+            {
+                if (++_debugWrite > 50)
+                {
+                    mux1.debug();
+                    mux2.debug();
+                    mux3.debug();
+                    Serial.println();
+
+                    _debugWrite = 0;
+                }
+            }
 
             mux1.commitBufferChanges(_controllerListener);
             mux2.commitBufferChanges(_controllerListener);
+            mux3.commitBufferChanges(_controllerListener);
             midiIo.commitBufferChanges(_controllerListener);
 
             _controllerListener->commit();

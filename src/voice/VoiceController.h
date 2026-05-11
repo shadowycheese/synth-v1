@@ -6,6 +6,7 @@
 #include "../SynthConfiguration.h"
 #include "../SynthConfigurationListener.h"
 #include "../Constants.h"
+#include "../io/Indicators.h"
 #include "../utils/CallCounter.h"
 #include "../utils/ClipDetector.h"
 
@@ -30,6 +31,7 @@ public:
 private:
     void updateVoices(uint32_t microSeconds);
     void updateVoiceFilters(uint32_t microSeconds);
+    void updateIndicators(uint32_t microSeconds);
 
     Voice voicePool[MAX_VOICES];
 
@@ -65,6 +67,12 @@ private:
 
     CallCounter voiceUpdates;
     CallCounter filterUpdates;
+
+    // Indicators
+    uint32_t nextIndicatorUpdateTime;
+    Indicators indicators;
+    float _lastPeak;
+    bool _wasOverdrive;
 };
 
 #endif

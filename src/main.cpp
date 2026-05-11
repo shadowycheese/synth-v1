@@ -70,12 +70,15 @@ void setup()
         delay(25);
     }
 
+    waveForm.frequency(440);
+    waveForm.begin(WAVEFORM_SINE);
+    waveForm.amplitude(1.0f);
+
     myusb.begin();
 
     usbMidi1.setHandleNoteOn(midiNoteOn);
     usbMidi1.setHandleNoteOff(midiNoteOff);
     usbMidi1.setHandlePitchChange(midiPitchChange);
-    usbMidi1.setHandleControlChange(midiControlChange);
     usbMidi1.setHandleControlChange(midiControlChange);
 
     configurationOrchestrator.begin();

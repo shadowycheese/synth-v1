@@ -1,7 +1,5 @@
 #include "VoiceController.h"
 
-const int VU_PIN = 33;
-
 VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1, 0),
                                      patch1(voicePool[1].getOutput(), 0, mixer1, 1),
                                      patch2(voicePool[2].getOutput(), 0, mixer1, 2),
@@ -36,10 +34,6 @@ VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1,
     right.gain(0, 1.0f);
 
     nextVoiceUpdateTime = millis();
-
-    pinMode(VU_PIN, OUTPUT);
-    analogWriteFrequency(VU_PIN, 22000);
-    analogWriteResolution(8);
 }
 
 void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
@@ -114,22 +108,8 @@ int VoiceController::findOldestVoice(byte note)
     return oldest;
 }
 
-int count = 0;
-float max1 = 0.0f;
-float longtermMax = 0.0f;
-
 void VoiceController::updateVoiceFilters(uint32_t microSeconds)
 {
-    if (peak.available())
-    {
-        float pk = peak.read();
-
-        pk = pow(pk, 0.4);
-
-        analogWrite(VU_PIN, (int)(255.0f * pk));
-
-        max1 = max(max1, pk);
-    }
     // Handle millis wrapping
     if (microSeconds >= nextFilterUpdateTime)
     {
@@ -144,15 +124,6 @@ void VoiceController::updateVoiceFilters(uint32_t microSeconds)
         if (nextFilterToUpdate == 0)
         {
             filterUpdates.inc(microSeconds);
-
-            if (count++ > 1000)
-            {
-                longtermMax = max(max1, longtermMax);
-
-                Serial.printf("Max levels %0.4f (%0.4f)\n", max1, longtermMax);
-                max1 = 0;
-                count = 0;
-            }
         }
     }
 }
@@ -192,8 +163,50 @@ void VoiceController::updateVoices(uint32_t microSeconds)
     }
 }
 
+void VoiceController::updateIndicators(uint32_t microSeconds)
+{
+    if (peak.available())
+    {
+        _lastPeak = peak.read();
+
+        if (_lastPeak >= 1.0f)
+        {
+            _wasOverdrive = true;
+        }
+    }
+
+    if (microSeconds > nextIndicatorUpdateTime)
+    {
+        indicators.level(_lastPeak);
+
+        if (_wasOverdrive)
+        {
+            indicators.overdrive(microSeconds);
+
+            _wasOverdrive = false;
+        }
+
+        uint8_t voiceCount = 0;
+
+        for (int i = 0; i < MAX_VOICES; i++)
+        {
+            if (voicePool[i].isPlaying())
+            {
+                voiceCount++;
+            }
+        }
+
+        indicators.voices(voiceCount);
+
+        nextIndicatorUpdateTime = microSeconds + 50000;
+    }
+
+    indicators.task(microSeconds);
+}
+
 void VoiceController::task(uint32_t microSeconds)
 {
     updateVoiceFilters(microSeconds);
     updateVoices(microSeconds);
+    updateIndicators(microSeconds);
 }

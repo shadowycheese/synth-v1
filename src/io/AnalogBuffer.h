@@ -1,7 +1,7 @@
 #ifndef ANALOGBUFFER_H
 #define ANALOGBUFFER_H
 
-#define BUFFER_SIZE 5
+#define BUFFER_SIZE 1
 
 class AnalogBuffer
 {

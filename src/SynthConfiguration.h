@@ -43,42 +43,68 @@ inline bool effectChanged(SynthConfigurationFlags flags)
     return flags & EFFECT_CHANGED;
 }
 
+class OscillatorConfiguration
+{
+public:
+    uint8_t waveform;
+    float level;
+    float amplitude;
+    float detune;
+    float frequency;
+    float pulseWidth;
+
+    void copy(OscillatorConfiguration *source)
+    {
+        waveform = source->waveform;
+        level = source->level;
+        detune = source->detune;
+        amplitude = source->amplitude;
+        frequency = source->frequency;
+        pulseWidth = source->pulseWidth;
+    }
+};
+
+class EnvelopeConfiguration
+{
+public:
+    float attack = 10;
+    float decay = 50;
+    float sustain = 0.7;
+    float release = 300;
+
+    void copy(EnvelopeConfiguration *source)
+    {
+        attack = source->attack;
+        decay = source->decay;
+        sustain = source->sustain;
+        release = source->release;
+    }
+};
+
 class SynthConfiguration
 {
 public:
     SynthConfiguration() {}
 
     // Waveform parameters
-    uint8_t waveforms[4];
-    uint8_t lfoWaveform;
+    OscillatorConfiguration waveforms[4];
+    OscillatorConfiguration pitchLfo;
+    OscillatorConfiguration filterLfo;
 
     // Envelope parameters
-    float voiceAttack = 10;
-    float voiceDecay = 50;
-    float voiceSustain = 0.7;
-    float voiceRelease = 300;
-    float filterAttack = 10;
-    float filterDecay = 50;
-    float filterSustain = 0.7;
-    float filterRelease = 300;
+    EnvelopeConfiguration voiceEnvelope;
+    EnvelopeConfiguration filterEnvelope;
 
     // Filter parameters
     bool autoCutoff;
     float filterCutoff;
-    float filterLevel;
-    float lfoFrequency;
-    float lfoAmplitude;
-    float lfoPulseWidth;
     float resonance = 0;
-    float octaveControl;
+    float octaveControl = 5;
 
     // Voice parameters
     float pitchBend = 0;
-    float detune = 0;
     bool halfSaw = 0;
-    float amplitudes[4];
     float noiseAmplitude;
-    float pitchLevel = 0.2;
 
     // Volume parameters
     float masterVolume = 1.0f;
@@ -92,40 +118,26 @@ public:
 
     void copy(SynthConfiguration *source)
     {
-        voiceAttack = source->voiceAttack;
-        voiceDecay = source->voiceDecay;
-        voiceSustain = source->voiceSustain;
-        voiceRelease = source->voiceRelease;
-
-        filterAttack = source->filterAttack;
-        filterDecay = source->filterDecay;
-        filterSustain = source->voiceSustain;
-        filterRelease = source->filterRelease;
+        voiceEnvelope.copy(&(source->voiceEnvelope));
+        filterEnvelope.copy(&(source->filterEnvelope));
 
         delayEnabled = source->delayEnabled;
         reverb = source->reverb;
         delay = source->delay;
-
         halfSaw = source->halfSaw;
-        detune = source->detune;
         resonance = source->resonance;
         pitchBend = source->pitchBend;
-        lfoAmplitude = source->lfoAmplitude;
-        lfoFrequency = source->lfoFrequency;
-        lfoPulseWidth = source->lfoPulseWidth;
-        octaveControl = source->octaveControl;
 
+        pitchLfo.copy(&(source->pitchLfo));
+        filterLfo.copy(&(source->filterLfo));
+        octaveControl = source->octaveControl;
         filterCutoff = source->filterCutoff;
         autoCutoff = source->autoCutoff;
-        filterLevel = source->filterLevel;
-
         noiseAmplitude = source->noiseAmplitude;
-        lfoWaveform = source->lfoWaveform;
 
         for (int i = 0; i < 4; i++)
         {
-            waveforms[i] = source->waveforms[i];
-            amplitudes[i] = source->amplitudes[i];
+            waveforms[i].copy(&(source->waveforms[i]));
         }
 
         masterVolume = source->masterVolume;

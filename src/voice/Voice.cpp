@@ -25,15 +25,12 @@ void Voice::init()
     reverbMixer.gain(0, 1.0f);
     reverbMixer.gain(1, 0.0f);
 
-    delayMixer.gain(0, 0.5f);
-    delayMixer.gain(1, 0.5f);
-
     filterLfo.amplitude(0.1f);
     filterLfo.offset(0.9f);
     filterLfo.frequency(0.2f);
     filterLfo.begin(WAVEFORM_TRIANGLE);
 
-    lfo.amplitude(1.0f);
+    pitchLfo.amplitude(1.0f);
 
     pitchLevel.amplitude(0.5f);
 
@@ -46,8 +43,6 @@ void Voice::init()
     envelopeFilter.decay(500);
     envelopeFilter.sustain(0.5);
     envelopeFilter.release(1000);
-
-    delay.delay(0, 0);
 }
 
 void Voice::noteOn(byte note, float frequency, float amplitude)
@@ -73,19 +68,21 @@ void Voice::noteOff()
 
 void Voice::updateFilter()
 {
-    if (_voiceConfiguration.lfoPulseWidth == 0)
+    if (_voiceConfiguration.pitchLfo.pulseWidth == 0.0f)
     {
         if (analyze.available())
         {
-            // lfo.pulseWidth(analyze.read());
+            pitchLfo.pulseWidth(analyze.read());
         }
     }
 
-    if (_voiceConfiguration.lfoFrequency == 0)
+    if (_voiceConfiguration.pitchLfo.frequency == 0.0f)
     {
-        // float freq = _freque7cy * _voiceConfiguration.pitchBend * (1.0f + _voiceConfiguration.detune);
+        float freq = _frequency * _voiceConfiguration.pitchBend * (1.0f + _voiceConfiguration.maxDetune);
 
-        // lfo.frequency(freq);
+        Serial.printf("Setting pitch freq from _frequency: %0.2f\n", freq);
+
+        pitchLfo.frequency(freq);
     }
 }
 
@@ -143,33 +140,43 @@ void Voice::configureVoice(bool restartOscillators)
 {
     float frequency = _frequency * (1.0 + _voiceConfiguration.pitchBend);
 
-    Serial.printf("main freq: %0.3f (%0.3f), volume: %0.3f, detune %0.5f, resonance %0.3f, halfsaw %d\n",
+    Serial.printf("main freq: %0.3f (%0.3f), volume: %0.3f, max detune: %0.5f, resonance: %0.3f, halfsaw: %d\n",
                   frequency,
                   _frequency,
                   _amplitudeScale,
-                  _voiceConfiguration.detune,
+                  _voiceConfiguration.maxDetune,
                   _voiceConfiguration.resonance,
                   _voiceConfiguration.halfSaw);
 
     noise.amplitude(_amplitudeScale * _voiceConfiguration.noiseAmplitude);
 
-    oscillators[0].frequency(frequency);
-    oscillators[0].amplitude(_amplitudeScale * _voiceConfiguration.amplitudes[0]);
+    pitchLevel.amplitude(_voiceConfiguration.pitchLfo.level);
 
-    float width = _voiceConfiguration.detune;
+    oscillators[0].frequency(frequency);
+    oscillators[0].amplitude(_amplitudeScale * _voiceConfiguration.waveforms[0].amplitude);
+    pulseWidths[0].amplitude(_voiceConfiguration.waveforms[0].pulseWidth);
+
+    if (_voiceConfiguration.pitchLfo.frequency > 0.0f)
+    {
+        Serial.printf("Setting pitch freq from config: %0.2f\n", _voiceConfiguration.pitchLfo.frequency);
+
+        pitchLfo.frequency(_voiceConfiguration.pitchLfo.frequency);
+    }
 
     for (int i = 0; i < 3; i++)
     {
         int l = 1 + (i * 2);
         int r = l + 1;
 
-        float centsR = VoiceConfiguration::CENTS[i + 1] * width * (DETUNE_MAX_SPREAD / 7.0f);
+        pulseWidths[i + 1].amplitude(_voiceConfiguration.waveforms[i + 1].pulseWidth);
+
+        float centsR = VoiceConfiguration::CENTS[i + 1] * _voiceConfiguration.waveforms[i + 1].detune * (DETUNE_MAX_SPREAD / 7.0f);
         float centsL = -centsR;
 
         float lf = frequency * powf(2.0f, centsL / 1200.0f);
         float rf = frequency * powf(2.0f, centsR / 1200.0f);
 
-        float amplitude = _amplitudeScale * _voiceConfiguration.amplitudes[i + 1];
+        float amplitude = _amplitudeScale * _voiceConfiguration.waveforms[i + 1].amplitude;
 
         float rightAmplitude = _voiceConfiguration.halfSaw ? 0.0f : amplitude;
 
@@ -202,21 +209,6 @@ void Voice::configureEffects()
         reverbMixer.gain(0, 1.0f);
         reverbMixer.gain(1, 0.0f);
     }
-
-    if (_voiceConfiguration.delayEnabled)
-    {
-        delayMixer.gain(0, 1.0f);
-        delayMixer.gain(1, 0.9f);
-    }
-    else
-    {
-        delayMixer.gain(0, 1.0f);
-        delayMixer.gain(1, 0.0f);
-    }
-
-    reverb.damping(1.0f - _voiceConfiguration.reverb);
-    reverb.roomsize(_voiceConfiguration.reverb);
-    delay.delay(0, _voiceConfiguration.delay);
 }
 
 void Voice::configureFilter()
@@ -225,7 +217,7 @@ void Voice::configureFilter()
     {
         float frequency = (_frequency * (_voiceConfiguration.pitchBend + 1.0f));
 
-        float centsR = VoiceConfiguration::CENTS[3] * _voiceConfiguration.detune * (DETUNE_MAX_SPREAD / 7.0f);
+        float centsR = VoiceConfiguration::CENTS[3] * _voiceConfiguration.maxDetune * (DETUNE_MAX_SPREAD / 7.0f);
         float centsL = -centsR;
 
         float minFrequency = frequency * powf(2.0f, centsL / 1200.0f);
@@ -239,7 +231,7 @@ void Voice::configureFilter()
 
         float octaves = min(maxOctaves, _voiceConfiguration.octaveControl);
 
-        Serial.printf("Filter (A): min %0.1f, max %0.1f, used %0.1f, omax %0.3f, oct %0.3f\n", minFrequency, maxFrequency, offset, maxOctaves, octaves);
+        // Serial.printf("Filter (A): min %0.1f, max %0.1f, used %0.1f, omax %0.3f, oct %0.3f\n", minFrequency, maxFrequency, offset, maxOctaves, octaves);
 
         filter.octaveControl(octaves);
     }
@@ -253,45 +245,45 @@ void Voice::configureFilter()
 
         float octaves = min(maxOctaves, _voiceConfiguration.octaveControl);
 
-        Serial.printf("Filter (M): used %0.1f, omax %0.3f, oct %0.3f\n", offset, maxOctaves, octaves);
+        // Serial.printf("Filter (M): used %0.1f, omax %0.3f, oct %0.3f\n", offset, maxOctaves, octaves);
 
         filter.octaveControl(octaves);
     }
 
     filter.resonance(_voiceConfiguration.resonance);
 
-    lfo.pulseWidth((_voiceConfiguration.lfoPulseWidth + 1.0f) / 2.0f);
+    filterLfo.pulseWidth(_voiceConfiguration.filterLfo.pulseWidth);
 
-    if (_voiceConfiguration.lfoFrequency > 0)
+    if (_voiceConfiguration.filterLfo.frequency > 0)
     {
-        lfo.frequency(max(0.5, _voiceConfiguration.lfoFrequency));
+        filterLfo.frequency(max(0.5, _voiceConfiguration.filterLfo.frequency));
     }
 
-    lfo.amplitude(_voiceConfiguration.lfoAmplitude);
+    filterLfo.amplitude(1.0f);
 
-    pitchLevel.amplitude(_voiceConfiguration.pitchLevel);
-
-    filterLevel.amplitude(_voiceConfiguration.filterLevel);
+    filterLevel.amplitude(_voiceConfiguration.filterLfo.level);
 
     updateFilter();
 }
 
 inline void Voice::configureEnvelope()
 {
-    envelopeVoice.attack(_voiceConfiguration.voiceAttack);
-    envelopeVoice.decay(_voiceConfiguration.voiceDecay);
-    envelopeVoice.sustain(_voiceConfiguration.voiceSustain);
-    envelopeVoice.release(_voiceConfiguration.voiceRelease);
+    envelopeVoice.attack(_voiceConfiguration.voiceEnvelope.attack);
+    envelopeVoice.decay(_voiceConfiguration.voiceEnvelope.decay);
+    envelopeVoice.sustain(_voiceConfiguration.voiceEnvelope.sustain);
+    envelopeVoice.release(_voiceConfiguration.voiceEnvelope.release);
 
-    envelopeFilter.attack(_voiceConfiguration.filterAttack);
-    envelopeFilter.decay(_voiceConfiguration.filterDecay);
-    envelopeFilter.sustain(_voiceConfiguration.filterSustain);
-    envelopeFilter.release(_voiceConfiguration.filterRelease);
+    envelopeFilter.attack(_voiceConfiguration.filterEnvelope.attack);
+    envelopeFilter.decay(_voiceConfiguration.filterEnvelope.decay);
+    envelopeFilter.sustain(_voiceConfiguration.filterEnvelope.sustain);
+    envelopeFilter.release(_voiceConfiguration.filterEnvelope.release);
 }
 
 void Voice::configureOscilators()
 {
-    lfo.begin(_voiceConfiguration.audioWaveformLfo());
+    filterLfo.begin(_voiceConfiguration.audioWaveformFilterLfo());
+    pitchLfo.begin(_voiceConfiguration.audioWaveformPitchLfo());
+
     uint8_t wf = _voiceConfiguration.audioWaveform(0);
 
     oscillators[0].begin(wf);

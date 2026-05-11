@@ -4,27 +4,27 @@
 class VoiceConfiguration : public SynthConfiguration
 {
 public:
+    float maxDetune;
+
     inline int audioWaveform(int waveform)
     {
-        return WaveFormMap[waveforms[waveform]];
+        return WaveFormMap[waveforms[waveform].waveform];
     }
 
-    inline int audioWaveformLfo()
+    inline int audioWaveformPitchLfo()
     {
-        return WaveFormMap[lfoWaveform];
+        return WaveFormMap[pitchLfo.waveform];
+    }
+
+    inline int audioWaveformFilterLfo()
+    {
+        return WaveFormMap[filterLfo.waveform];
     }
 
     void copyEnvelopeConfiguration(SynthConfiguration *source)
     {
-        voiceAttack = source->voiceAttack;
-        voiceDecay = source->voiceDecay;
-        voiceSustain = source->voiceSustain;
-        voiceRelease = source->voiceRelease;
-
-        filterAttack = source->filterAttack;
-        filterDecay = source->filterDecay;
-        filterSustain = source->voiceSustain;
-        filterRelease = source->filterRelease;
+        voiceEnvelope.copy(&(source->voiceEnvelope));
+        filterEnvelope.copy(&(source->filterEnvelope));
     }
 
     void copyEffectConfiguration(SynthConfiguration *source)
@@ -37,11 +37,11 @@ public:
 
     void copyWaveformConfiguration(SynthConfiguration *source)
     {
-        lfoWaveform = source->lfoWaveform;
+        filterLfo.copy(&(source->filterLfo));
 
         for (int i = 0; i < 4; i++)
         {
-            waveforms[i] = source->waveforms[i];
+            waveforms[i].copy(&(source->waveforms[i]));
         }
     }
 
@@ -50,23 +50,28 @@ public:
         autoCutoff = source->autoCutoff;
         resonance = source->resonance;
         filterCutoff = source->filterCutoff;
-        lfoFrequency = source->lfoFrequency;
-        lfoAmplitude = source->lfoAmplitude;
-        lfoPulseWidth = source->lfoPulseWidth;
-        filterLevel = source->filterLevel;
         octaveControl = source->octaveControl;
+
+        filterLfo.copy(&(source->filterLfo));
     }
 
     void copyVoiceConfiguration(SynthConfiguration *source)
     {
-        detune = source->detune;
+        pitchLfo.copy(&(source->pitchLfo));
+
         noiseAmplitude = source->noiseAmplitude;
         pitchBend = source->pitchBend;
         halfSaw = source->halfSaw;
+        maxDetune = 0;
 
         for (int i = 0; i < 4; i++)
         {
-            amplitudes[i] = source->amplitudes[i];
+            waveforms[i].copy(&(source->waveforms[i]));
+
+            if (waveforms[i].detune > maxDetune)
+            {
+                maxDetune = waveforms[i].detune;
+            }
         }
     }
 
@@ -74,8 +79,8 @@ public:
     {
         masterVolume = source->masterVolume;
         voiceGain = source->voiceGain;
-        pitchLevel = source->pitchLevel;
-        filterLevel = source->filterLevel;
+        pitchLfo.level = source->pitchLfo.level;
+        filterLfo.level = source->filterLfo.level;
     }
 
     static constexpr int WaveFormMap[8] = {

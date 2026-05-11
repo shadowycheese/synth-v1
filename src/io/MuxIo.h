@@ -5,10 +5,12 @@
 #include "AnalogBuffer.h"
 #include "ControllerIoListener.h"
 
-#define DEBOUNCE_DISTANCE 5
+#define DEBOUNCE_DISTANCE 1
+#define INVERTED 1
 
 const int MUX1_READ_PIN = 27;
 const int MUX2_READ_PIN = 26;
+const int MUX3_READ_PIN = 25;
 
 class MuxIo
 {
@@ -31,11 +33,21 @@ public:
             return;
         }
 
-        int pin = muxId == 1 ? MUX1_READ_PIN : MUX2_READ_PIN;
+        int pin = muxId == 1
+                      ? MUX1_READ_PIN
+                  : muxId == 2
+                      ? MUX2_READ_PIN
+                      : MUX3_READ_PIN;
 
         analogRead(pin);
 
         int rawValue = analogRead(pin);
+
+        if (INVERTED)
+        {
+            rawValue = 1023 - rawValue;
+        }
+
         int oldValue = currentValues[input].value();
         int value = currentValues[input].read(rawValue);
 
@@ -49,10 +61,19 @@ public:
 
     void debug()
     {
+        Serial.printf("%d:", muxId);
+
         for (int i = 0; i < activePins; i++)
         {
-            Serial.printf("%03X ", bufferValues[i]);
+            if ((i % 4) == 0)
+            {
+                Serial.print(" ");
+            }
+            // Serial.printf("%02X ", bufferValues[i] >> 2);
+            Serial.printf("%01X", bufferValues[i] >> 6);
         }
+
+        Serial.print("  ");
     }
 
     void commitBufferChanges(ControllerIoListener *ioListener)
