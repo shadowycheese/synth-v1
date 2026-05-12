@@ -35,23 +35,23 @@ public:
     {
         if (control == 7)
         {
-            update(MIDI_INPUT_RESONANCE, 8 * (int)value);
+            // update(MIDI_INPUT_RESONANCE, 8 * (int)value);
         }
         else if (control == 74)
         {
-            update(MIDI_INPUT_DETUNE, 8 * (int)value);
+            // update(MIDI_INPUT_DETUNE, 8 * (int)value);
         }
         else if (control == 71)
         {
-            update(MIDI_INPUT_LFO_FREQUENCY, 8 * (int)value);
+            // update(MIDI_INPUT_LFO_FREQUENCY, 8 * (int)value);
         }
         else if (control == 72)
         {
-            update(MIDI_INPUT_REVERB, 8 * (int)value);
+            // update(MIDI_INPUT_REVERB, 8 * (int)value);
         }
         else if (control == 73)
         {
-            update(MIDI_INPUT_CHORUS, 8 * (int)value);
+            // update(MIDI_INPUT_CHORUS, 8 * (int)value);
         }
     }
 

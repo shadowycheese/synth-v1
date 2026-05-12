@@ -6,7 +6,6 @@
 #include "Constants.h"
 #include "io/SynthConfigurationOrchestrator.h"
 #include "io/SynthConfigurationMapper.h"
-#include "utils/ClipDetector.h"
 
 AudioOutputI2S i2s1;
 AudioControlSGTL5000 sgtl5000;
@@ -25,8 +24,6 @@ MIDIDevice usbMidi1(myusb);
 
 AudioConnection leftPatch(voiceController.getLeft(), 0, i2s1, 0);
 AudioConnection rightPatch(voiceController.getRight(), 0, i2s1, 1);
-
-ClipDetectorTask clipDetector;
 
 void midiNoteOn(byte channel, byte note, byte velocity)
 {

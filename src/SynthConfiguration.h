@@ -94,9 +94,11 @@ public:
     // Envelope parameters
     EnvelopeConfiguration voiceEnvelope;
     EnvelopeConfiguration filterEnvelope;
+    EnvelopeConfiguration lfoEnvelope;
 
     // Filter parameters
     bool autoCutoff;
+    bool lowPass;
     float filterCutoff;
     float resonance = 0;
     float octaveControl = 5;
@@ -120,11 +122,13 @@ public:
     {
         voiceEnvelope.copy(&(source->voiceEnvelope));
         filterEnvelope.copy(&(source->filterEnvelope));
+        lfoEnvelope.copy(&(source->lfoEnvelope));
 
         delayEnabled = source->delayEnabled;
         reverb = source->reverb;
         delay = source->delay;
         halfSaw = source->halfSaw;
+        lowPass = source->lowPass;
         resonance = source->resonance;
         pitchBend = source->pitchBend;
 

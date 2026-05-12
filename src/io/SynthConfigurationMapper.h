@@ -56,13 +56,13 @@ private:
 
     Func mux1Inputs[16] = {
         &SynthConfigurationMapper::updateAutoCutoff,
-        &SynthConfigurationMapper::updateHalfSaw,
+        &SynthConfigurationMapper::updateFilterType,
         &SynthConfigurationMapper::updateReverbEnabled,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::updateHalfSaw,
+        &SynthConfigurationMapper::updateLfoRelease,
+        &SynthConfigurationMapper::updateLfoSustain,
+        &SynthConfigurationMapper::updateLfoDecay,
+        &SynthConfigurationMapper::updateLfoAttack,
         &SynthConfigurationMapper::updateFilterDecay,
         &SynthConfigurationMapper::updateFilterRelease,
         &SynthConfigurationMapper::updateFilterAttack,
@@ -73,10 +73,10 @@ private:
         &SynthConfigurationMapper::updateVoiceAttack};
 
     Func mux2Inputs[16] = {
+        &SynthConfigurationMapper::updateOscillatorAmplitude3,
+        &SynthConfigurationMapper::updateOscillatorAmplitude2,
         &SynthConfigurationMapper::updateOscillatorAmplitude0,
         &SynthConfigurationMapper::updateOscillatorAmplitude1,
-        &SynthConfigurationMapper::updateOscillatorAmplitude2,
-        &SynthConfigurationMapper::updateOscillatorAmplitude3,
         &SynthConfigurationMapper::updateVoiceGain,
         &SynthConfigurationMapper::updateManualCutoff,
         &SynthConfigurationMapper::updateResonance,
@@ -170,6 +170,26 @@ private:
     int updateFilterRelease(int value)
     {
         return updateRelease(&_localSynthConfiguration.filterEnvelope, "Filter", ENVELOPE_CHANGED, value);
+    }
+
+    int updateLfoAttack(int value)
+    {
+        return updateAttack(&_localSynthConfiguration.lfoEnvelope, "LFO", ENVELOPE_CHANGED, value);
+    }
+
+    int updateLfoDecay(int value)
+    {
+        return updateDecay(&_localSynthConfiguration.lfoEnvelope, "LFO", ENVELOPE_CHANGED, value);
+    }
+
+    int updateLfoSustain(int value)
+    {
+        return updateSustain(&_localSynthConfiguration.lfoEnvelope, "LFO", ENVELOPE_CHANGED, value);
+    }
+
+    int updateLfoRelease(int value)
+    {
+        return updateRelease(&_localSynthConfiguration.lfoEnvelope, "LFO", ENVELOPE_CHANGED, value);
     }
 
     // Volume
@@ -303,24 +323,24 @@ private:
         return updateOscillatorFrequency(&_localSynthConfiguration.pitchLfo, "Pitch LFO", VOICE_CHANGED, value);
     }
 
-    int updateFilterLfoFrequency(int value)
-    {
-        return updateOscillatorFrequency(&_localSynthConfiguration.pitchLfo, "Filter LFO", FILTER_CHANGED, value);
-    }
-
     int updatePitchLfoAmplitude(int value)
     {
         return updateOscillatorAmplitude(&_localSynthConfiguration.pitchLfo, "Pitch LFO", VOICE_CHANGED, value);
     }
 
-    int updateFilterLfoAmplitude(int value)
-    {
-        return updateOscillatorAmplitude(&_localSynthConfiguration.filterLfo, "Filter LFO", FILTER_CHANGED, value);
-    }
-
     int updateFilterLfoPulseWidth(int value)
     {
         return updateOscillatorPulseWidth(&_localSynthConfiguration.filterLfo, "Filter LFO", FILTER_CHANGED, value);
+    }
+
+    int updateFilterLfoFrequency(int value)
+    {
+        return updateOscillatorFrequency(&_localSynthConfiguration.filterLfo, "Filter LFO", FILTER_CHANGED, value);
+    }
+
+    int updateFilterLfoAmplitude(int value)
+    {
+        return updateOscillatorAmplitude(&_localSynthConfiguration.filterLfo, "Filter LFO", FILTER_CHANGED, value);
     }
 
     int updateOctaveControl(int value)
@@ -342,7 +362,7 @@ private:
 
     int updateAutoCutoff(int value)
     {
-        bool newValue = value >= 512 ? true : false;
+        bool newValue = value < 512 ? true : false;
 
         if (newValue != _localSynthConfiguration.autoCutoff)
         {
@@ -358,7 +378,7 @@ private:
 
     int updateReverbEnabled(int value)
     {
-        bool newValue = value >= 512 ? true : false;
+        bool newValue = value < 512 ? true : false;
 
         if (newValue != _localSynthConfiguration.reverbEnabled)
         {
@@ -367,6 +387,22 @@ private:
             _localSynthConfiguration.reverbEnabled = newValue;
 
             return EFFECT_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateFilterType(int value)
+    {
+        bool newValue = value < 512 ? false : true;
+
+        if (newValue != _localSynthConfiguration.lowPass)
+        {
+            Serial.printf("Low pass filter = %s\n", newValue ? "true" : "false");
+
+            _localSynthConfiguration.lowPass = newValue;
+
+            return FILTER_CHANGED;
         }
 
         return 0;
@@ -434,7 +470,7 @@ private:
 
     int updateHalfSaw(int value)
     {
-        bool newValue = value >= 512 ? true : false;
+        bool newValue = value < 512 ? true : false;
 
         if (newValue != _localSynthConfiguration.halfSaw)
         {
@@ -516,7 +552,7 @@ private:
     // Common
     int updateOscillatorFrequency(OscillatorConfiguration *oscillator, const char *name, int changeFlag, int value)
     {
-        float valueF = getScaledValue(value, 2);
+        float valueF = getScaledValue(value, 3);
 
         float newValue = (valueF * 1000.0f);
 
@@ -630,11 +666,11 @@ private:
 
     int updateOscillatorWaveform(OscillatorConfiguration *oscillator, const char *name, int changeFlag, int value)
     {
-        int newValue = (value / 128) & 7;
+        int newValue = (value / 170) % 6;
 
         if (newValue != oscillator->waveform)
         {
-            Serial.printf("%s waveform %d\n", name, newValue);
+            Serial.printf("%s waveform %d [%s]\n", name, newValue, VoiceConfiguration::WaveFormNames[newValue]);
 
             oscillator->waveform = newValue;
 
@@ -684,7 +720,7 @@ private:
 
     float getScaledValue(int value, int order)
     {
-        if (value > (1023 - DEAD_ZONE))
+        if (value >= (1023 - DEAD_ZONE))
         {
             return 1.0f;
         }
@@ -696,7 +732,7 @@ private:
 
         float range = 1023.0f - (DEAD_ZONE * 2);
 
-        value -= (DEAD_ZONE * 2);
+        value -= DEAD_ZONE;
 
         float valueF = (float)value / range;
 

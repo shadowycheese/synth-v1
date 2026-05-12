@@ -26,7 +26,7 @@ public:
             Serial.printf("%s: %d/s\n", _debugTitle, _calls);
 
             _nextDebug = time + 1000000;
-            _calls = 0;
+            _calls = 1;
         }
         else
         {

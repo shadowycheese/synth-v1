@@ -42,8 +42,8 @@ void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configurat
     {
         for (int i = 0; i < 4; i++)
         {
-            masterMix.gain(i, configuration->voiceGain * 10.0f);
-            masterMix.gain(i, configuration->voiceGain * 10.0f);
+            masterMix.gain(i, configuration->voiceGain * 25.0f);
+            masterMix.gain(i, configuration->voiceGain * 25.0f);
         }
     }
 

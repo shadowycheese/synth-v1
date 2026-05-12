@@ -4,8 +4,6 @@
 #include "../Constants.h"
 #include "../voice/VoiceController.h"
 
-#define DEBOUNCE_DISTANCE 1
-
 const int PIN_VU = 33;
 const int PIN_LED_595_DATA = 34;
 const int PIN_LED_595_CLOCK = 35;
@@ -41,7 +39,7 @@ public:
         }
 
         _active = true;
-        _timeOff = microSeconds + 100000;
+        _timeOff = microSeconds + 200000;
     }
 
     void voices(uint8_t count)
@@ -50,6 +48,7 @@ public:
         {
             return;
         }
+
         _voiceCount = count;
 
         digitalWriteFast(PIN_LED_595_LATCH, LOW);
@@ -62,6 +61,7 @@ public:
         if (_active && microSeconds > _timeOff)
         {
             _active = false;
+
             digitalWriteFast(PIN_LED_OVERDRIVE, LOW);
         }
 
@@ -70,7 +70,7 @@ public:
             return;
         }
 
-        if (microSeconds > _lowerTime)
+        if (microSeconds > _targetAdjTime)
         {
             if (_level > _targetLevel)
             {
@@ -85,13 +85,13 @@ public:
                 analogWrite(PIN_VU, _level);
             }
 
-            _lowerTime = microSeconds + 20000;
+            _targetAdjTime = microSeconds + 20000;
         }
     }
 
 private:
     uint32_t _timeOff;
-    uint32_t _lowerTime;
+    uint32_t _targetAdjTime;
     bool _active;
     uint8_t _voiceCount;
     uint8_t _level;

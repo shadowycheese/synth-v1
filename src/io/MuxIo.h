@@ -19,6 +19,11 @@ public:
     {
         muxId = id;
         activePins = activePinCount;
+        inputPin = muxId == 1
+                       ? MUX1_READ_PIN
+                   : muxId == 2
+                       ? MUX2_READ_PIN
+                       : MUX3_READ_PIN;
 
         for (int i = 0; i < 16; i++)
         {
@@ -33,15 +38,9 @@ public:
             return;
         }
 
-        int pin = muxId == 1
-                      ? MUX1_READ_PIN
-                  : muxId == 2
-                      ? MUX2_READ_PIN
-                      : MUX3_READ_PIN;
+        analogRead(inputPin);
 
-        analogRead(pin);
-
-        int rawValue = analogRead(pin);
+        int rawValue = analogRead(inputPin);
 
         if (INVERTED)
         {
@@ -69,7 +68,7 @@ public:
             {
                 Serial.print(" ");
             }
-            // Serial.printf("%02X ", bufferValues[i] >> 2);
+
             Serial.printf("%01X", bufferValues[i] >> 6);
         }
 
@@ -94,6 +93,7 @@ public:
 private:
     int activePins;
     int muxId;
+    int inputPin;
     AnalogBuffer currentValues[16];
     int bufferValues[16];
     int commitValues[16];
