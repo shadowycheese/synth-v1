@@ -47,11 +47,11 @@ private:
 
     Func midiInputs[7] = {
         &SynthConfigurationMapper::updatePitchBend,
-        &SynthConfigurationMapper::updateResonance,
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::updateReverb,
-        &SynthConfigurationMapper::updateOctaveControl,
+        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp};
 
     Func mux1Inputs[16] = {
@@ -73,19 +73,19 @@ private:
         &SynthConfigurationMapper::updateVoiceAttack};
 
     Func mux2Inputs[16] = {
-        &SynthConfigurationMapper::updateOscillatorAmplitude3,
-        &SynthConfigurationMapper::updateOscillatorAmplitude2,
-        &SynthConfigurationMapper::updateOscillatorAmplitude0,
-        &SynthConfigurationMapper::updateOscillatorAmplitude1,
-        &SynthConfigurationMapper::updateVoiceGain,
-        &SynthConfigurationMapper::updateManualCutoff,
+        &SynthConfigurationMapper::updateOscillatorPulseWidth3,
+        &SynthConfigurationMapper::updateOscillatorPulseWidth2,
+        &SynthConfigurationMapper::updateOscillatorPulseWidth0,
+        &SynthConfigurationMapper::updateOscillatorPulseWidth1,
+        &SynthConfigurationMapper::updateFilterTracking,
+        &SynthConfigurationMapper::updateFilterCutoff,
         &SynthConfigurationMapper::updateResonance,
         &SynthConfigurationMapper::updateOctaveControl,
         &SynthConfigurationMapper::updateFilterLfoWaveform,
         &SynthConfigurationMapper::updateFilterLfoFrequency,
         &SynthConfigurationMapper::updateFilterLfoPulseWidth,
-        &SynthConfigurationMapper::updateFilterLevel,
-        &SynthConfigurationMapper::updatePitchLevel,
+        &SynthConfigurationMapper::updateFilterLfoGain,
+        &SynthConfigurationMapper::updateModLfoGain,
         &SynthConfigurationMapper::updatePitchLfoPulseWidth,
         &SynthConfigurationMapper::updatePitchLfoFrequency,
         &SynthConfigurationMapper::updatePitchLfoWaveform};
@@ -95,14 +95,14 @@ private:
         &SynthConfigurationMapper::updateWaveform1,
         &SynthConfigurationMapper::updateWaveform2,
         &SynthConfigurationMapper::updateWaveform3,
-        &SynthConfigurationMapper::updateOscillatorPulseWidth0,
-        &SynthConfigurationMapper::updateOscillatorPulseWidth1,
-        &SynthConfigurationMapper::updateOscillatorPulseWidth2,
-        &SynthConfigurationMapper::updateOscillatorPulseWidth3,
+        &SynthConfigurationMapper::updateOscillatorGain0,
+        &SynthConfigurationMapper::updateOscillatorGain1,
+        &SynthConfigurationMapper::updateOscillatorGain2,
+        &SynthConfigurationMapper::updateOscillatorGain3,
+        &SynthConfigurationMapper::updateAmpGain,
         &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::updateReverb,
         &SynthConfigurationMapper::updateNoiseAmplitude,
         &SynthConfigurationMapper::updateDetune1,
         &SynthConfigurationMapper::updateDetune2,
@@ -193,15 +193,15 @@ private:
     }
 
     // Volume
-    int updateVoiceGain(int value)
+    int updateAmpGain(int value)
     {
         float newValue = getScaledValue(value, 2);
 
-        if (newValue != _localSynthConfiguration.voiceGain)
+        if (newValue != _localSynthConfiguration.ampGain)
         {
-            Serial.printf("Voice gain %f\n", newValue);
+            Serial.printf("Amp gain %f\n", newValue);
 
-            _localSynthConfiguration.voiceGain = newValue;
+            _localSynthConfiguration.ampGain = newValue;
 
             return VOLUME_CHANGED;
         }
@@ -228,22 +228,22 @@ private:
     // Wave form
     int updateWaveform0(int value)
     {
-        return updateOscillatorWaveform(&_localSynthConfiguration.waveforms[0], "Oscillator 0", WAVEFORM_CHANGED, value);
+        return updateOscillatorWaveform(&_localSynthConfiguration.oscillators[0], "Oscillator 0", WAVEFORM_CHANGED, value);
     }
 
     int updateWaveform1(int value)
     {
-        return updateOscillatorWaveform(&_localSynthConfiguration.waveforms[1], "Oscillator 1", WAVEFORM_CHANGED, value);
+        return updateOscillatorWaveform(&_localSynthConfiguration.oscillators[1], "Oscillator 1", WAVEFORM_CHANGED, value);
     }
 
     int updateWaveform2(int value)
     {
-        return updateOscillatorWaveform(&_localSynthConfiguration.waveforms[2], "Oscillator 2", WAVEFORM_CHANGED, value);
+        return updateOscillatorWaveform(&_localSynthConfiguration.oscillators[2], "Oscillator 2", WAVEFORM_CHANGED, value);
     }
 
     int updateWaveform3(int value)
     {
-        return updateOscillatorWaveform(&_localSynthConfiguration.waveforms[3], "Oscillator 3", WAVEFORM_CHANGED, value);
+        return updateOscillatorWaveform(&_localSynthConfiguration.oscillators[3], "Oscillator 3", WAVEFORM_CHANGED, value);
     }
 
     int updatePitchLfoWaveform(int value)
@@ -257,35 +257,35 @@ private:
     }
 
     // Voice configuration
-    int updateOscillatorAmplitude0(int value)
+    int updateOscillatorGain0(int value)
     {
-        return updateOscillatorAmplitude(&_localSynthConfiguration.waveforms[0], "Oscillator 0", VOICE_CHANGED, value);
+        return updateOscillatorGain(&_localSynthConfiguration.oscillators[0], "Oscillator 0", VOLUME_CHANGED, value);
     }
 
-    int updateOscillatorAmplitude1(int value)
+    int updateOscillatorGain1(int value)
     {
-        return updateOscillatorAmplitude(&_localSynthConfiguration.waveforms[1], "Oscillator 1", VOICE_CHANGED, value);
+        return updateOscillatorGain(&_localSynthConfiguration.oscillators[1], "Oscillator 1", VOLUME_CHANGED, value);
     }
 
-    int updateOscillatorAmplitude2(int value)
+    int updateOscillatorGain2(int value)
     {
-        return updateOscillatorAmplitude(&_localSynthConfiguration.waveforms[2], "Oscillator 2", VOICE_CHANGED, value);
+        return updateOscillatorGain(&_localSynthConfiguration.oscillators[2], "Oscillator 2", VOLUME_CHANGED, value);
     }
 
-    int updateOscillatorAmplitude3(int value)
+    int updateOscillatorGain3(int value)
     {
-        return updateOscillatorAmplitude(&_localSynthConfiguration.waveforms[3], "Oscillator 3", VOICE_CHANGED, value);
+        return updateOscillatorGain(&_localSynthConfiguration.oscillators[3], "Oscillator 3", VOLUME_CHANGED, value);
     }
 
     int updateNoiseAmplitude(int value)
     {
         float newValue = getScaledValue(value, 3);
 
-        if (newValue != _localSynthConfiguration.noiseAmplitude)
+        if (newValue != _localSynthConfiguration.noiseGain)
         {
             Serial.printf("Noise %0.3f\n", newValue);
 
-            _localSynthConfiguration.noiseAmplitude = newValue;
+            _localSynthConfiguration.noiseGain = newValue;
 
             return VOICE_CHANGED;
         }
@@ -295,22 +295,22 @@ private:
 
     int updateOscillatorPulseWidth0(int value)
     {
-        return updateOscillatorPulseWidth(&_localSynthConfiguration.waveforms[0], "Oscillator 0", VOICE_CHANGED, value);
+        return updateOscillatorPulseWidth(&_localSynthConfiguration.oscillators[0], "Oscillator 0", VOICE_CHANGED, value);
     }
 
     int updateOscillatorPulseWidth1(int value)
     {
-        return updateOscillatorPulseWidth(&_localSynthConfiguration.waveforms[1], "Oscillator 1", VOICE_CHANGED, value);
+        return updateOscillatorPulseWidth(&_localSynthConfiguration.oscillators[1], "Oscillator 1", VOICE_CHANGED, value);
     }
 
     int updateOscillatorPulseWidth2(int value)
     {
-        return updateOscillatorPulseWidth(&_localSynthConfiguration.waveforms[2], "Oscillator 2", VOICE_CHANGED, value);
+        return updateOscillatorPulseWidth(&_localSynthConfiguration.oscillators[2], "Oscillator 2", VOICE_CHANGED, value);
     }
 
     int updateOscillatorPulseWidth3(int value)
     {
-        return updateOscillatorPulseWidth(&_localSynthConfiguration.waveforms[3], "Oscillator 3", VOICE_CHANGED, value);
+        return updateOscillatorPulseWidth(&_localSynthConfiguration.oscillators[3], "Oscillator 3", VOICE_CHANGED, value);
     }
 
     int updatePitchLfoPulseWidth(int value)
@@ -408,14 +408,14 @@ private:
         return 0;
     }
 
-    int updatePitchLevel(int value)
+    int updateModLfoGain(int value)
     {
-        return updateOscillatorLevel(&_localSynthConfiguration.pitchLfo, "Pitch LFO", VOICE_CHANGED, value);
+        return updateOscillatorGain(&_localSynthConfiguration.pitchLfo, "Pitch LFO", VOICE_CHANGED, value);
     }
 
-    int updateFilterLevel(int value)
+    int updateFilterLfoGain(int value)
     {
-        return updateOscillatorLevel(&(_localSynthConfiguration.filterLfo), "Filter LFO", FILTER_CHANGED, value);
+        return updateOscillatorGain(&(_localSynthConfiguration.filterLfo), "Filter LFO", FILTER_CHANGED, value);
     }
 
     int updateReverb(int value)
@@ -486,17 +486,17 @@ private:
 
     int updateDetune1(int value)
     {
-        return updateDetune(&_localSynthConfiguration.waveforms[1], "Oscillator 1", VOICE_CHANGED, value);
+        return updateDetune(&_localSynthConfiguration.oscillators[1], "Oscillator 1", VOICE_CHANGED, value);
     }
 
     int updateDetune2(int value)
     {
-        return updateDetune(&_localSynthConfiguration.waveforms[2], "Oscillator 2", VOICE_CHANGED, value);
+        return updateDetune(&_localSynthConfiguration.oscillators[2], "Oscillator 2", VOICE_CHANGED, value);
     }
 
     int updateDetune3(int value)
     {
-        return updateDetune(&_localSynthConfiguration.waveforms[3], "Oscillator 3", VOICE_CHANGED, value);
+        return updateDetune(&_localSynthConfiguration.oscillators[3], "Oscillator 3", VOICE_CHANGED, value);
     }
 
     int updateResonance(int value)
@@ -504,7 +504,7 @@ private:
         float valueF = getScaledValue(value, 3);
 
         float newValue = 0.7f + 4.3f * valueF;
-
+        // float newValue = 1.8f * valueF;
         if (newValue != _localSynthConfiguration.resonance)
         {
             Serial.printf("Resonance = %0.3f\n", newValue);
@@ -517,7 +517,7 @@ private:
         return 0;
     }
 
-    int updateManualCutoff(int value)
+    int updateFilterCutoff(int value)
     {
         float newValue = getScaledValue(value, 1);
 
@@ -526,6 +526,22 @@ private:
             Serial.printf("Cutoff = %0.3f\n", newValue);
 
             _localSynthConfiguration.filterCutoff = newValue;
+
+            return FILTER_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updateFilterTracking(int value)
+    {
+        float newValue = getScaledValue(value, 1);
+
+        if (newValue != _localSynthConfiguration.keyTracking)
+        {
+            Serial.printf("Key tracking = %0.3f\n", newValue);
+
+            _localSynthConfiguration.keyTracking = newValue;
 
             return FILTER_CHANGED;
         }
@@ -602,7 +618,8 @@ private:
 
     int updateAttack(EnvelopeConfiguration *envelope, const char *name, int changeFlag, int value)
     {
-        float newValue = value / 2.0f;
+        float newValue = getScaledValue(value, 1);
+        newValue = 1.0f + (powf(newValue, 3) * 3999.0f);
 
         if (newValue != envelope->attack)
         {
@@ -618,7 +635,8 @@ private:
 
     int updateDecay(EnvelopeConfiguration *envelope, const char *name, int changeFlag, int value)
     {
-        float newValue = value / 2.0f;
+        float newValue = getScaledValue(value, 1);
+        newValue = 5.0f + (powf(newValue, 3) * 7995.0f);
 
         if (newValue != envelope->decay)
         {
@@ -650,7 +668,8 @@ private:
 
     int updateRelease(EnvelopeConfiguration *envelope, const char *name, int changeFlag, int value)
     {
-        float newValue = value * 1.0f;
+        float newValue = getScaledValue(value, 1);
+        newValue = 5.0f + (powf(newValue, 3) * 7995.0f);
 
         if (newValue != envelope->release)
         {
@@ -680,15 +699,15 @@ private:
         return 0;
     }
 
-    int updateOscillatorLevel(OscillatorConfiguration *oscillator, const char *name, int changeFlag, int value)
+    int updateOscillatorGain(OscillatorConfiguration *oscillator, const char *name, int changeFlag, int value)
     {
         float valueF = getScaledValue(value, 2);
 
-        if (valueF != oscillator->level)
+        if (valueF != oscillator->gain)
         {
             Serial.printf("%s level = %0.3f\n", name, valueF);
 
-            oscillator->level = valueF;
+            oscillator->gain = valueF;
 
             return changeFlag;
         }

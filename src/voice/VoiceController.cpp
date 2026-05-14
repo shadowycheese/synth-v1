@@ -1,24 +1,6 @@
 #include "VoiceController.h"
 
-VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1, 0),
-                                     patch1(voicePool[1].getOutput(), 0, mixer1, 1),
-                                     patch2(voicePool[2].getOutput(), 0, mixer1, 2),
-                                     patch3(voicePool[3].getOutput(), 0, mixer1, 3),
-
-                                     patch4(voicePool[4].getOutput(), 0, mixer2, 0),
-                                     patch5(voicePool[5].getOutput(), 0, mixer2, 1),
-                                     patch6(voicePool[6].getOutput(), 0, mixer2, 2),
-                                     patch7(voicePool[7].getOutput(), 0, mixer2, 3),
-
-                                     patchM1(mixer1, 0, masterMix, 0),
-                                     patchM2(mixer2, 0, masterMix, 1),
-
-                                     patchLeft(masterMix, 0, left, 0),
-                                     patchRight(masterMix, 0, right, 1),
-
-                                     patchPeak(masterMix, 0, peak, 0),
-
-                                     voiceUpdates("Voice Updates"),
+VoiceController::VoiceController() : voiceUpdates("Voice Updates"),
                                      filterUpdates("Filter Updates")
 {
     for (int i = 0; i < 4; i++)
@@ -27,8 +9,8 @@ VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1,
         mixer2.gain(i, 0.25f);
     }
 
-    masterMix.gain(0, 1.0f);
-    masterMix.gain(1, 1.0f);
+    masterMix.gain(0, 0.35f);
+    masterMix.gain(1, 0.35f);
 
     left.gain(0, 1.0f);
     right.gain(0, 1.0f);
@@ -38,16 +20,33 @@ VoiceController::VoiceController() : patch0(voicePool[0].getOutput(), 0, mixer1,
 
 void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
 {
+    voiceConfiguration.copy(configuration);
+
     if (volumeChanged(changeFlags))
     {
-        for (int i = 0; i < 4; i++)
-        {
-            masterMix.gain(i, configuration->voiceGain * 25.0f);
-            masterMix.gain(i, configuration->voiceGain * 25.0f);
-        }
+        leftAmp.gain(voiceConfiguration.ampGain * 40.0f);
+        rightAmp.gain(voiceConfiguration.ampGain * 40.0f);
     }
 
-    voiceConfiguration.copy(configuration);
+    if (effectChanged(changeFlags))
+    {
+        if (voiceConfiguration.reverbEnabled)
+        {
+            left.gain(0, 0.8f);
+            left.gain(1, 0.5f);
+            right.gain(0, 0.8f);
+            right.gain(1, 0.5f);
+
+            reverb.reverbTime(voiceConfiguration.reverb);
+        }
+        else
+        {
+            left.gain(0, 1.0f);
+            left.gain(1, 0.0f);
+            right.gain(0, 1.0f);
+            right.gain(1, 0.0f);
+        }
+    }
 
     voiceConfigurationVersion++;
 
@@ -59,13 +58,22 @@ void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configurat
 
 void VoiceController::noteOn(byte note, byte velocity)
 {
+    if (velocity == 0)
+    {
+        noteOff(note, velocity);
+
+        return;
+    }
+
     int voice = findOldestVoice(note);
 
     if (voice >= 0)
     {
         notesVoiceMap[note] = voice;
 
-        voicePool[voice].noteOn(note, midiNoteHz(note), 0.2 + (0.8f * ((float)velocity) / 128));
+        float amplitude = pow(10.0f, (velocity - 127.0f) / 63.5f);
+
+        voicePool[voice].noteOn(note, midiNoteHz(note), amplitude);
     }
 }
 

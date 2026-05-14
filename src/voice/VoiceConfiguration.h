@@ -4,11 +4,9 @@
 class VoiceConfiguration : public SynthConfiguration
 {
 public:
-    float maxDetune;
-
     inline int audioWaveform(int waveform)
     {
-        return WaveFormMap[waveforms[waveform].waveform];
+        return WaveFormMap[oscillators[waveform].waveform];
     }
 
     inline int audioWaveformPitchLfo()

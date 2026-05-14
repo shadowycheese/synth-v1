@@ -14,8 +14,8 @@ class VoiceController : public SynthConfigurationListener
 public:
     VoiceController();
 
-    AudioStream &getLeft() { return left; }
-    AudioStream &getRight() { return right; }
+    AudioStream &getLeft() { return leftAmp; }
+    AudioStream &getRight() { return rightAmp; }
 
     void noteOn(byte note, byte velocity);
 
@@ -37,16 +37,41 @@ private:
     AudioMixer4 mixer1;
     AudioMixer4 mixer2;
     AudioMixer4 masterMix;
+
     AudioMixer4 left;
     AudioMixer4 right;
+    AudioAmplifier leftAmp;
+    AudioAmplifier rightAmp;
+    AudioEffectReverb reverb;
     AudioAnalyzePeak peak;
 
-    AudioConnection patch0, patch1, patch2, patch3;
-    AudioConnection patch4, patch5, patch6, patch7;
+    AudioConnection patches[40] =
+        {
+            AudioConnection(voicePool[0].getOutput(), 0, mixer1, 0),
+            AudioConnection(voicePool[1].getOutput(), 0, mixer1, 1),
+            AudioConnection(voicePool[2].getOutput(), 0, mixer1, 2),
+            AudioConnection(voicePool[3].getOutput(), 0, mixer1, 3),
 
-    AudioConnection patchM1, patchM2, patchMaster;
+            AudioConnection(voicePool[4].getOutput(), 0, mixer2, 0),
+            AudioConnection(voicePool[5].getOutput(), 0, mixer2, 1),
+            AudioConnection(voicePool[6].getOutput(), 0, mixer2, 2),
+            AudioConnection(voicePool[7].getOutput(), 0, mixer2, 3),
 
-    AudioConnection patchLeft, patchRight, patchPeak;
+            AudioConnection(mixer1, 0, masterMix, 0),
+            AudioConnection(mixer2, 0, masterMix, 1),
+
+            AudioConnection(masterMix, reverb),
+
+            AudioConnection(masterMix, 0, left, 0),
+            AudioConnection(masterMix, 0, right, 0),
+
+            AudioConnection(reverb, 0, left, 1),
+            AudioConnection(reverb, 0, right, 1),
+
+            AudioConnection(left, 0, leftAmp, 0),
+            AudioConnection(right, 0, rightAmp, 0), //
+
+            AudioConnection(leftAmp, 0, peak, 0)};
 
     byte notesVoiceMap[256];
 

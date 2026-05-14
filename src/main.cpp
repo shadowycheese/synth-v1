@@ -60,7 +60,7 @@ void setup()
     sgtl5000.volume(0.3);
     sgtl5000.unmuteHeadphone();
 
-    for (int level = 31; level >= 21; level--)
+    for (int level = 31; level >= 17; level--)
     {
         sgtl5000.lineOutLevel(level);
 

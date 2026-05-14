@@ -47,7 +47,7 @@ class OscillatorConfiguration
 {
 public:
     uint8_t waveform;
-    float level;
+    float gain;
     float amplitude;
     float detune;
     float frequency;
@@ -56,7 +56,7 @@ public:
     void copy(OscillatorConfiguration *source)
     {
         waveform = source->waveform;
-        level = source->level;
+        gain = source->gain;
         detune = source->detune;
         amplitude = source->amplitude;
         frequency = source->frequency;
@@ -87,7 +87,7 @@ public:
     SynthConfiguration() {}
 
     // Waveform parameters
-    OscillatorConfiguration waveforms[4];
+    OscillatorConfiguration oscillators[4];
     OscillatorConfiguration pitchLfo;
     OscillatorConfiguration filterLfo;
 
@@ -102,15 +102,17 @@ public:
     float filterCutoff;
     float resonance = 0;
     float octaveControl = 5;
+    float keyTracking = 0.0f;
 
     // Voice parameters
     float pitchBend = 0;
     bool halfSaw = 0;
-    float noiseAmplitude;
+    float noiseGain;
+    float maxDetune;
 
     // Volume parameters
     float masterVolume = 1.0f;
-    float voiceGain = 0.5f;
+    float ampGain = 0.5f;
 
     // Effect parameters
     bool delayEnabled = 20;
@@ -125,7 +127,9 @@ public:
         lfoEnvelope.copy(&(source->lfoEnvelope));
 
         delayEnabled = source->delayEnabled;
+        reverbEnabled = source->reverbEnabled;
         reverb = source->reverb;
+        keyTracking = source->keyTracking;
         delay = source->delay;
         halfSaw = source->halfSaw;
         lowPass = source->lowPass;
@@ -137,15 +141,20 @@ public:
         octaveControl = source->octaveControl;
         filterCutoff = source->filterCutoff;
         autoCutoff = source->autoCutoff;
-        noiseAmplitude = source->noiseAmplitude;
+        noiseGain = source->noiseGain;
+        maxDetune = 0;
 
         for (int i = 0; i < 4; i++)
         {
-            waveforms[i].copy(&(source->waveforms[i]));
+            if (oscillators[i].detune > maxDetune)
+            {
+                maxDetune = oscillators[i].detune;
+            }
+            oscillators[i].copy(&(source->oscillators[i]));
         }
 
         masterVolume = source->masterVolume;
-        voiceGain = source->voiceGain;
+        ampGain = source->ampGain;
     }
 };
 

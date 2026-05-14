@@ -20,7 +20,7 @@ public:
     void noteOn(byte note, float frequency, float velocity);
     void noteOff();
 
-    AudioStream &getOutput() { return reverbMixer; }
+    AudioStream &getOutput() { return envelopeVoice; }
 
     float volume();
     bool isPlaying();
@@ -52,9 +52,7 @@ private:
     AudioEffectEnvelope envelopeVoice;
     AudioEffectEnvelope envelopeFilter;
     AudioEffectEnvelope envelopeLfo;
-    AudioEffectFreeverb reverb;
     AudioAnalyzePeak analyze;
-    AudioMixer4 reverbMixer;
     AudioMixer4 filterMixer;
 
     AudioConnection patches[40] =
@@ -99,11 +97,8 @@ private:
             AudioConnection(envelopeFilter, 0, filter, 0),
             AudioConnection(filter, 0, filterMixer, 0),
             AudioConnection(filter, 1, filterMixer, 1),
+            AudioConnection(oscilatorMixerMain, 0, filterMixer, 2),
             AudioConnection(filterMixer, 0, envelopeVoice, 0),
-
-            AudioConnection(envelopeVoice, 0, reverb, 0),
-            AudioConnection(envelopeVoice, 0, reverbMixer, 0),
-            AudioConnection(reverb, 0, reverbMixer, 1) //
         };
 
     VoiceConfiguration _voiceConfiguration;
@@ -111,11 +106,12 @@ private:
     uint32_t _timestamp;
     byte _note;
     float _frequency;
-    float _amplitudeScale;
+    float _gain;
     uint32_t _iteration;
 
     void init();
     void configureVoice(bool restart);
+    void configureGain();
     void configureFilter();
     void configureEffects();
     void configureOscilators();
