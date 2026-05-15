@@ -44,6 +44,11 @@ private:
     AudioAmplifier rightAmp;
     AudioEffectReverb reverb;
     AudioAnalyzePeak peak;
+    AudioAnalyzePeak peak1;
+    AudioAnalyzePeak peak2;
+    AudioAnalyzePeak peak3;
+    AudioAnalyzePeak peak4;
+    AudioAnalyzePeak peak5;
 
     AudioConnection patches[40] =
         {
@@ -60,7 +65,13 @@ private:
             AudioConnection(mixer1, 0, masterMix, 0),
             AudioConnection(mixer2, 0, masterMix, 1),
 
-            AudioConnection(masterMix, reverb),
+            AudioConnection(masterMix, 0, reverb, 0),
+
+            AudioConnection(mixer1, 0, peak1, 0),
+            AudioConnection(mixer2, 0, peak2, 0),
+
+            AudioConnection(masterMix, 0, peak3, 0),
+            AudioConnection(reverb, 0, peak4, 0),
 
             AudioConnection(masterMix, 0, left, 0),
             AudioConnection(masterMix, 0, right, 0),
@@ -70,6 +81,7 @@ private:
 
             AudioConnection(left, 0, leftAmp, 0),
             AudioConnection(right, 0, rightAmp, 0), //
+            AudioConnection(left, 0, peak5, 0),
 
             AudioConnection(leftAmp, 0, peak, 0)};
 
@@ -88,6 +100,7 @@ private:
     int nextVoiceToUpdate;
     int voiceVersions[MAX_VOICES];
     int pendingChanges[MAX_VOICES];
+    float peak1f, peak2f, peak3f, peak4f, peak5f;
 
     CallCounter voiceUpdates;
     CallCounter filterUpdates;

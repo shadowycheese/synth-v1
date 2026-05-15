@@ -5,12 +5,12 @@ VoiceController::VoiceController() : voiceUpdates("Voice Updates"),
 {
     for (int i = 0; i < 4; i++)
     {
-        mixer1.gain(i, 0.25f);
-        mixer2.gain(i, 0.25f);
+        mixer1.gain(i, 0.35f);
+        mixer2.gain(i, 0.35f);
     }
 
-    masterMix.gain(0, 0.35f);
-    masterMix.gain(1, 0.35f);
+    masterMix.gain(0, 0.70f);
+    masterMix.gain(1, 0.70f);
 
     left.gain(0, 1.0f);
     right.gain(0, 1.0f);
@@ -24,8 +24,8 @@ void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configurat
 
     if (volumeChanged(changeFlags))
     {
-        leftAmp.gain(voiceConfiguration.ampGain * 40.0f);
-        rightAmp.gain(voiceConfiguration.ampGain * 40.0f);
+        leftAmp.gain(voiceConfiguration.ampGain * 5.0f);
+        rightAmp.gain(voiceConfiguration.ampGain * 5.0f);
     }
 
     if (effectChanged(changeFlags))
@@ -43,7 +43,7 @@ void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configurat
         {
             left.gain(0, 1.0f);
             left.gain(1, 0.0f);
-            right.gain(0, 1.0f);
+            right.gain(0, 0.0f);
             right.gain(1, 0.0f);
         }
     }
@@ -116,8 +116,29 @@ int VoiceController::findOldestVoice(byte note)
     return oldest;
 }
 
+int every = 0;
 void VoiceController::updateVoiceFilters(uint32_t microSeconds)
 {
+    if (peak1.available())
+    {
+        peak1f = max(peak1f, peak1.read());
+    }
+    if (peak2.available())
+    {
+        peak2f = max(peak2f, peak2.read());
+    }
+    if (peak3.available())
+    {
+        peak3f = max(peak3f, peak3.read());
+    }
+    if (peak4.available())
+    {
+        peak4f = max(peak4f, peak4.read());
+    }
+    if (peak5.available())
+    {
+        peak5f = max(peak5f, peak5.read());
+    }
     // Handle millis wrapping
     if (microSeconds >= nextFilterUpdateTime)
     {
@@ -132,6 +153,31 @@ void VoiceController::updateVoiceFilters(uint32_t microSeconds)
         if (nextFilterToUpdate == 0)
         {
             filterUpdates.inc(microSeconds);
+        }
+        if (every++ == 1000)
+        {
+            Serial.printf("T: %0.2f %0.2f %0.2f %0.2f %0.2f", peak1f, peak2f, peak3f, peak4f, peak5f);
+
+            for (int i = 0; i < 7; i++)
+            {
+                if (voicePool[i].isPlaying())
+                {
+                    Serial.printf(" %d:", i);
+                    voicePool[i].task(true);
+                }
+            }
+
+            peak1f = peak2f = peak3f = peak4f = peak5f = 0;
+
+            every = 0;
+            Serial.println();
+        }
+    }
+    else
+    {
+        for (int i = 0; i < 7; i++)
+        {
+            voicePool[i].task(false);
         }
     }
 }

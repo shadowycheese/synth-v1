@@ -12,6 +12,7 @@ static constexpr SynthConfigurationFlags WAVEFORM_CHANGED = 0x0004;
 static constexpr SynthConfigurationFlags VOLUME_CHANGED = 0x0008;
 static constexpr SynthConfigurationFlags VOICE_CHANGED = 0x0010;
 static constexpr SynthConfigurationFlags EFFECT_CHANGED = 0x0020;
+static constexpr SynthConfigurationFlags LFO_CHANGED = 0x0040;
 
 inline bool waveformChanged(SynthConfigurationFlags flags)
 {
@@ -41,6 +42,11 @@ inline bool voiceChanged(SynthConfigurationFlags flags)
 inline bool effectChanged(SynthConfigurationFlags flags)
 {
     return flags & EFFECT_CHANGED;
+}
+
+inline bool lfoChanged(SynthConfigurationFlags flags)
+{
+    return flags & LFO_CHANGED;
 }
 
 class OscillatorConfiguration
@@ -88,8 +94,8 @@ public:
 
     // Waveform parameters
     OscillatorConfiguration oscillators[4];
-    OscillatorConfiguration pitchLfo;
-    OscillatorConfiguration filterLfo;
+    OscillatorConfiguration lfo1;
+    OscillatorConfiguration lfo2;
 
     // Envelope parameters
     EnvelopeConfiguration voiceEnvelope;
@@ -136,8 +142,8 @@ public:
         resonance = source->resonance;
         pitchBend = source->pitchBend;
 
-        pitchLfo.copy(&(source->pitchLfo));
-        filterLfo.copy(&(source->filterLfo));
+        lfo1.copy(&(source->lfo1));
+        lfo2.copy(&(source->lfo2));
         octaveControl = source->octaveControl;
         filterCutoff = source->filterCutoff;
         autoCutoff = source->autoCutoff;

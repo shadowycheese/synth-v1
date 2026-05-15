@@ -9,14 +9,14 @@ public:
         return WaveFormMap[oscillators[waveform].waveform];
     }
 
-    inline int audioWaveformPitchLfo()
+    inline int audioWaveformLfo1()
     {
-        return WaveFormMap[pitchLfo.waveform];
+        return WaveFormMap[lfo1.waveform];
     }
 
-    inline int audioWaveformFilterLfo()
+    inline int audioWaveformLfo2()
     {
-        return WaveFormMap[filterLfo.waveform];
+        return WaveFormMap[lfo2.waveform];
     }
 
     static constexpr int WaveFormMap[8] = {

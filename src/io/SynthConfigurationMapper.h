@@ -81,14 +81,14 @@ private:
         &SynthConfigurationMapper::updateFilterCutoff,
         &SynthConfigurationMapper::updateResonance,
         &SynthConfigurationMapper::updateOctaveControl,
-        &SynthConfigurationMapper::updateFilterLfoWaveform,
-        &SynthConfigurationMapper::updateFilterLfoFrequency,
-        &SynthConfigurationMapper::updateFilterLfoPulseWidth,
-        &SynthConfigurationMapper::updateFilterLfoGain,
-        &SynthConfigurationMapper::updateModLfoGain,
-        &SynthConfigurationMapper::updatePitchLfoPulseWidth,
-        &SynthConfigurationMapper::updatePitchLfoFrequency,
-        &SynthConfigurationMapper::updatePitchLfoWaveform};
+        &SynthConfigurationMapper::updateLfo2Waveform,
+        &SynthConfigurationMapper::updateLfo2Frequency,
+        &SynthConfigurationMapper::updateLfo2PulseWidth,
+        &SynthConfigurationMapper::updateLfo2Amplitude,
+        &SynthConfigurationMapper::updateLfo1Amplitude,
+        &SynthConfigurationMapper::updateLfo1PulseWidth,
+        &SynthConfigurationMapper::updateLfo1Frequency,
+        &SynthConfigurationMapper::updateLfo1Waveform};
 
     Func mux3Inputs[16] = {
         &SynthConfigurationMapper::updateWaveform0,
@@ -246,14 +246,14 @@ private:
         return updateOscillatorWaveform(&_localSynthConfiguration.oscillators[3], "Oscillator 3", WAVEFORM_CHANGED, value);
     }
 
-    int updatePitchLfoWaveform(int value)
+    int updateLfo1Waveform(int value)
     {
-        return updateOscillatorWaveform(&_localSynthConfiguration.pitchLfo, "Pitch LFO", WAVEFORM_CHANGED, value);
+        return updateOscillatorWaveform(&_localSynthConfiguration.lfo1, "LFO 1", WAVEFORM_CHANGED, value);
     }
 
-    int updateFilterLfoWaveform(int value)
+    int updateLfo2Waveform(int value)
     {
-        return updateOscillatorWaveform(&_localSynthConfiguration.filterLfo, "Filter LFO", WAVEFORM_CHANGED, value);
+        return updateOscillatorWaveform(&_localSynthConfiguration.lfo2, "LFO 2", WAVEFORM_CHANGED, value);
     }
 
     // Voice configuration
@@ -313,34 +313,34 @@ private:
         return updateOscillatorPulseWidth(&_localSynthConfiguration.oscillators[3], "Oscillator 3", VOICE_CHANGED, value);
     }
 
-    int updatePitchLfoPulseWidth(int value)
+    int updateLfo1PulseWidth(int value)
     {
-        return updateOscillatorPulseWidth(&_localSynthConfiguration.pitchLfo, "Pitch LFO", VOICE_CHANGED, value);
+        return updateOscillatorPulseWidth(&_localSynthConfiguration.lfo1, "LFO 1", LFO_CHANGED, value);
     }
 
-    int updatePitchLfoFrequency(int value)
+    int updateLfo1Frequency(int value)
     {
-        return updateOscillatorFrequency(&_localSynthConfiguration.pitchLfo, "Pitch LFO", VOICE_CHANGED, value);
+        return updateOscillatorFrequency(&_localSynthConfiguration.lfo1, "LFO 1", LFO_CHANGED, value);
     }
 
-    int updatePitchLfoAmplitude(int value)
+    int updateLfo1Amplitude(int value)
     {
-        return updateOscillatorAmplitude(&_localSynthConfiguration.pitchLfo, "Pitch LFO", VOICE_CHANGED, value);
+        return updateOscillatorAmplitude(&_localSynthConfiguration.lfo1, "LFO 1", LFO_CHANGED, value);
     }
 
-    int updateFilterLfoPulseWidth(int value)
+    int updateLfo2PulseWidth(int value)
     {
-        return updateOscillatorPulseWidth(&_localSynthConfiguration.filterLfo, "Filter LFO", FILTER_CHANGED, value);
+        return updateOscillatorPulseWidth(&_localSynthConfiguration.lfo2, "LFO 2", LFO_CHANGED, value);
     }
 
-    int updateFilterLfoFrequency(int value)
+    int updateLfo2Frequency(int value)
     {
-        return updateOscillatorFrequency(&_localSynthConfiguration.filterLfo, "Filter LFO", FILTER_CHANGED, value);
+        return updateOscillatorFrequency(&_localSynthConfiguration.lfo2, "LFO 2", LFO_CHANGED, value);
     }
 
-    int updateFilterLfoAmplitude(int value)
+    int updateLfo2Amplitude(int value)
     {
-        return updateOscillatorAmplitude(&_localSynthConfiguration.filterLfo, "Filter LFO", FILTER_CHANGED, value);
+        return updateOscillatorAmplitude(&_localSynthConfiguration.lfo2, "LFO 3", LFO_CHANGED, value);
     }
 
     int updateOctaveControl(int value)
@@ -406,16 +406,6 @@ private:
         }
 
         return 0;
-    }
-
-    int updateModLfoGain(int value)
-    {
-        return updateOscillatorGain(&_localSynthConfiguration.pitchLfo, "Pitch LFO", VOICE_CHANGED, value);
-    }
-
-    int updateFilterLfoGain(int value)
-    {
-        return updateOscillatorGain(&(_localSynthConfiguration.filterLfo), "Filter LFO", FILTER_CHANGED, value);
     }
 
     int updateReverb(int value)

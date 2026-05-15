@@ -5,12 +5,12 @@ void Voice::init()
 {
     for (int i = 0; i < 4; i++)
     {
-        oscilatorMixer1.gain(i, 0.25f);
+        oscillatorMixer1.gain(i, 0.25f);
     }
 
     for (int i = 0; i < 4; i++)
     {
-        oscilatorMixer2.gain(i, 0.25f);
+        oscillatorMixer2.gain(i, 0.25f);
     }
 
     for (int i = 0; i < 7; i++)
@@ -19,15 +19,20 @@ void Voice::init()
         oscillators[i].amplitude(1.0f);
     }
 
+    filterLevel.amplitude(1.0f);
     noise.amplitude(1.0f);
-    oscilatorMixerMain.gain(0, 0.25f);
-    oscilatorMixerMain.gain(1, 0.25f);
+    oscillatorMixerMain.gain(0, 0.25f);
+    oscillatorMixerMain.gain(1, 0.25f);
 
-    filterLfo.amplitude(0.1f);
-    filterLfo.offset(0.9f);
+    lfo1a.amplitude(1.0f);
+    lfo1b.amplitude(1.0f);
+    lfo2a.amplitude(1.0f);
+    lfo2b.amplitude(1.0f);
 
-    modLfo.amplitude(1.0f);
-    modLfo.offset(0.0f);
+    lfo1a.phase(0.0f);
+    lfo1b.phase(60.0f);
+    lfo2a.phase(120.0f);
+    lfo2b.phase(240.0f);
 }
 
 void Voice::noteOn(byte note, float frequency, float gain)
@@ -41,7 +46,10 @@ void Voice::noteOn(byte note, float frequency, float gain)
 
     envelopeFilter.noteOn();
     envelopeVoice.noteOn();
-    envelopeLfo.noteOn();
+    envelopeLfo1a.noteOn();
+    envelopeLfo1b.noteOn();
+    envelopeLfo2a.noteOn();
+    envelopeLfo2b.noteOn();
 
     _note = note;
     _timestamp = millis();
@@ -51,17 +59,40 @@ void Voice::noteOff()
 {
     envelopeVoice.noteOff();
     envelopeFilter.noteOff();
-    envelopeLfo.noteOff();
+    envelopeLfo1a.noteOff();
+    envelopeLfo1b.noteOff();
+    envelopeLfo2a.noteOff();
+    envelopeLfo2b.noteOff();
 }
 
 void Voice::updateFilter()
 {
-    if (_voiceConfiguration.pitchLfo.pulseWidth == 0.0f)
+}
+
+void Voice::task(bool print)
+{
+    if (mixer1Analyze.available())
     {
-        // if (analyze.available())
-        //{
-        //   pitchLfo.pulseWidth(analyze.read());
-        //}
+        peak1 = max(peak1, mixer1Analyze.read());
+    }
+    if (mixer2Analyze.available())
+    {
+        peak2 = max(peak2, mixer2Analyze.read());
+    }
+    if (mainMixerAnalyze.available())
+    {
+        peak3 = max(peak3, mainMixerAnalyze.read());
+    }
+    if (filterAnalyze.available())
+    {
+        peak4 = max(peak4, filterAnalyze.read());
+    }
+
+    if (print)
+    {
+        Serial.printf("%0.2f %0.2f %0.2f %0.2f", peak1, peak2, peak3, peak4);
+
+        peak1 = peak2 = peak3 = peak4 = 0.0f;
     }
 }
 
@@ -71,7 +102,20 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
 
     if (envelopeChanged(changeFlags))
     {
-        configureEnvelope();
+        configureEnvelope(&envelopeLfo1a, &_voiceConfiguration.lfoEnvelope);
+        configureEnvelope(&envelopeLfo1b, &_voiceConfiguration.lfoEnvelope);
+        configureEnvelope(&envelopeLfo2a, &_voiceConfiguration.lfoEnvelope);
+        configureEnvelope(&envelopeLfo2a, &_voiceConfiguration.lfoEnvelope);
+        configureEnvelope(&envelopeFilter, &_voiceConfiguration.filterEnvelope);
+        configureEnvelope(&envelopeVoice, &_voiceConfiguration.voiceEnvelope);
+    }
+
+    if (lfoChanged(changeFlags))
+    {
+        configureLfo(&lfo1a, &_voiceConfiguration.lfo1, _frequency);
+        configureLfo(&lfo1b, &_voiceConfiguration.lfo2, _frequency);
+        configureLfo(&lfo2a, &_voiceConfiguration.lfo1, _frequency);
+        configureLfo(&lfo2b, &_voiceConfiguration.lfo2, _frequency);
     }
 
     if (effectChanged(changeFlags))
@@ -120,11 +164,17 @@ void Voice::configureVoice(bool restartOscillators)
                   _voiceConfiguration.resonance,
                   _voiceConfiguration.halfSaw);
 
-    modLevel.amplitude(_voiceConfiguration.pitchLfo.gain);
+    if (_voiceConfiguration.lfo1.frequency == 0.0f)
+    {
+        lfo1a.frequency(frequency / 2);
+        lfo1b.frequency(frequency / 2);
+    }
+    if (_voiceConfiguration.lfo2.frequency == 0.0f)
+    {
+        lfo2a.frequency(frequency / 2);
+        lfo2b.frequency(frequency / 2);
+    }
 
-    modLfo.frequency(_voiceConfiguration.pitchLfo.frequency == 0.0f
-                         ? frequency / 2
-                         : _voiceConfiguration.pitchLfo.frequency);
     pulseWidths[0].amplitude(2.0f * (_voiceConfiguration.oscillators[0].pulseWidth - 0.5f));
 
     oscillators[0].frequency(frequency);
@@ -155,6 +205,13 @@ void Voice::configureVoice(bool restartOscillators)
     }
 }
 
+void Voice::configureLfo(AudioSynthWaveform *lfo, OscillatorConfiguration *config, float frequency)
+{
+    lfo->amplitude(config->amplitude);
+    lfo->frequency(config->frequency == 0.0f ? frequency : config->frequency);
+    lfo->pulseWidth(config->pulseWidth);
+}
+
 void Voice::configureEffects()
 {
 }
@@ -167,17 +224,17 @@ void Voice::configureGain()
     float osc3Gain = _gain * _voiceConfiguration.oscillators[3].gain;
     float noiseGain = _gain * _voiceConfiguration.noiseGain;
 
-    Serial.printf("Osc 0 gain: %0.3f\n", osc0Gain);
+    Serial.printf("Gain: %0.2f %0.2f %0.2f %0.2f\n", osc0Gain, osc1Gain, osc2Gain, osc3Gain);
 
-    oscilatorMixer1.gain(0, osc0Gain);
-    oscilatorMixer1.gain(1, osc1Gain);
-    oscilatorMixer1.gain(2, osc1Gain);
-    oscilatorMixer1.gain(3, osc2Gain);
+    oscillatorMixer1.gain(0, osc0Gain);
+    oscillatorMixer1.gain(1, osc1Gain);
+    oscillatorMixer1.gain(2, osc1Gain);
+    oscillatorMixer1.gain(3, osc2Gain);
 
-    oscilatorMixer2.gain(0, osc2Gain);
-    oscilatorMixer2.gain(1, osc3Gain);
-    oscilatorMixer2.gain(2, osc3Gain);
-    oscilatorMixer2.gain(3, noiseGain);
+    oscillatorMixer2.gain(0, osc2Gain);
+    oscillatorMixer2.gain(1, osc3Gain);
+    oscillatorMixer2.gain(2, osc3Gain);
+    oscillatorMixer2.gain(3, noiseGain);
 }
 
 void Voice::configureFilter()
@@ -237,48 +294,27 @@ void Voice::configureFilter()
 
     filter.resonance(_voiceConfiguration.resonance);
 
-    filterLevel.amplitude(_voiceConfiguration.filterLfo.gain);
-
-    filterLfo.pulseWidth(_voiceConfiguration.filterLfo.pulseWidth);
-
-    // if (_voiceConfiguration.filterLfo.frequency > 0)
-    //{
-    filterLfo.frequency(max(0.5, _voiceConfiguration.filterLfo.frequency));
-    //}
-
     updateFilter();
 }
 
-inline void Voice::configureEnvelope()
+inline void Voice::configureEnvelope(AudioEffectEnvelope *envelope, EnvelopeConfiguration *config)
 {
-    envelopeVoice.attack(_voiceConfiguration.voiceEnvelope.attack);
-    envelopeVoice.decay(_voiceConfiguration.voiceEnvelope.decay);
-    envelopeVoice.sustain(_voiceConfiguration.voiceEnvelope.sustain);
-    envelopeVoice.release(_voiceConfiguration.voiceEnvelope.release);
-
-    envelopeFilter.attack(_voiceConfiguration.filterEnvelope.attack);
-    envelopeFilter.decay(_voiceConfiguration.filterEnvelope.decay);
-    envelopeFilter.sustain(_voiceConfiguration.filterEnvelope.sustain);
-    envelopeFilter.release(_voiceConfiguration.filterEnvelope.release);
-
-    Serial.printf("LFO Env: %0.3f %0.3f %0.3f %0.3f\n", _voiceConfiguration.lfoEnvelope.attack, _voiceConfiguration.lfoEnvelope.decay, _voiceConfiguration.lfoEnvelope.sustain, _voiceConfiguration.lfoEnvelope.release);
-
-    envelopeLfo.attack(_voiceConfiguration.lfoEnvelope.attack);
-    envelopeLfo.decay(_voiceConfiguration.lfoEnvelope.decay);
-    envelopeLfo.sustain(_voiceConfiguration.lfoEnvelope.sustain);
-    envelopeLfo.release(_voiceConfiguration.lfoEnvelope.release);
+    envelope->attack(config->attack);
+    envelope->decay(config->decay);
+    envelope->sustain(config->sustain);
+    envelope->release(config->release);
 }
 
 void Voice::configureOscilators()
 {
-    filterLfo.begin(_voiceConfiguration.audioWaveformFilterLfo());
-    modLfo.begin(_voiceConfiguration.audioWaveformPitchLfo());
+    lfo1a.begin(_voiceConfiguration.audioWaveformLfo1());
+    lfo1a.begin(_voiceConfiguration.audioWaveformLfo1());
+    lfo2a.begin(_voiceConfiguration.audioWaveformLfo2());
+    lfo2b.begin(_voiceConfiguration.audioWaveformLfo2());
 
     uint8_t wf = _voiceConfiguration.audioWaveform(0);
 
     oscillators[0].begin(wf);
-
-    // Serial.printf("Restart oscilators: %d\n", wf);
 
     for (int i = 0; i < 3; i++)
     {
@@ -286,6 +322,7 @@ void Voice::configureOscilators()
 
         int l = 1 + (i * 2);
         int r = l + 1;
+
         oscillators[l].begin(wf);
         oscillators[r].begin(wf);
     }
