@@ -1,7 +1,7 @@
 #include "VoiceController.h"
 
-VoiceController::VoiceController() : voiceUpdates("Voice Updates"),
-                                     filterUpdates("Filter Updates")
+VoiceController::VoiceController(Indicators *inidicators) : voiceUpdates("Voice Updates"),
+                                                            filterUpdates("Filter Updates")
 {
     for (int i = 0; i < 4; i++)
     {
@@ -15,33 +15,31 @@ VoiceController::VoiceController() : voiceUpdates("Voice Updates"),
     left.gain(0, 1.0f);
     right.gain(0, 1.0f);
 
+    _indicators = inidicators;
+
     nextVoiceUpdateTime = millis();
 }
 
 void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
 {
-    voiceConfiguration.copy(configuration);
+    _voiceConfiguration.copy(configuration);
 
     if (volumeChanged(changeFlags))
     {
-        leftAmp.gain(voiceConfiguration.ampGain * 5.0f);
-        rightAmp.gain(voiceConfiguration.ampGain * 5.0f);
-    }
-
-    if (lfoChanged(changeFlags))
-    {
+        leftAmp.gain(_voiceConfiguration.ampGain * 5.0f);
+        rightAmp.gain(_voiceConfiguration.ampGain * 5.0f);
     }
 
     if (effectChanged(changeFlags))
     {
-        if (voiceConfiguration.reverbEnabled)
+        if (_voiceConfiguration.reverbEnabled)
         {
             left.gain(0, 0.8f);
             left.gain(1, 0.5f);
             right.gain(0, 0.8f);
             right.gain(1, 0.5f);
 
-            reverb.reverbTime(voiceConfiguration.reverb);
+            reverb.reverbTime(_voiceConfiguration.reverb);
         }
         else
         {
@@ -52,11 +50,11 @@ void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configurat
         }
     }
 
-    voiceConfigurationVersion++;
+    _voiceConfigurationVersion++;
 
     for (int i = 0; i < MAX_VOICES; i++)
     {
-        pendingChanges[i] |= changeFlags;
+        _pendingChanges[i] |= changeFlags;
     }
 }
 
@@ -73,7 +71,7 @@ void VoiceController::noteOn(byte note, byte velocity)
 
     if (voice >= 0)
     {
-        notesVoiceMap[note] = voice;
+        _notesVoiceMap[note] = voice;
 
         float amplitude = pow(10.0f, (velocity - 127.0f) / 63.5f);
 
@@ -83,7 +81,7 @@ void VoiceController::noteOn(byte note, byte velocity)
 
 void VoiceController::noteOff(byte note, byte velocity)
 {
-    voicePool[notesVoiceMap[note]].noteOff();
+    voicePool[_notesVoiceMap[note]].noteOff();
 }
 
 int VoiceController::findOldestVoice(byte note)
@@ -144,17 +142,17 @@ void VoiceController::updateVoiceFilters(uint32_t microSeconds)
         peak5f = max(peak5f, peak5.read());
     }
     // Handle millis wrapping
-    if (microSeconds >= nextFilterUpdateTime)
+    if (microSeconds >= _nextFilterUpdateTime)
     {
-        int voice = nextFilterToUpdate++;
+        int voice = _nextFilterToUpdate++;
 
-        nextFilterToUpdate &= 7;
+        _nextFilterToUpdate &= 7;
 
-        nextFilterUpdateTime = microSeconds + 200;
+        _nextFilterUpdateTime = microSeconds + 200;
 
         voicePool[voice].updateFilter();
 
-        if (nextFilterToUpdate == 0)
+        if (_nextFilterToUpdate == 0)
         {
             filterUpdates.inc(microSeconds);
         }
@@ -200,24 +198,24 @@ void VoiceController::updateVoices(uint32_t microSeconds)
         return;
     }
 
-    int voice = nextVoiceToUpdate++;
+    int voice = _nextVoiceToUpdate++;
 
-    nextVoiceToUpdate &= 7;
+    _nextVoiceToUpdate &= 7;
 
-    if (nextVoiceToUpdate == 0)
+    if (_nextVoiceToUpdate == 0)
     {
         voiceUpdates.inc(microSeconds);
     }
 
     nextVoiceUpdateTime = microSeconds + 1500;
 
-    if (voiceVersions[voice] != voiceConfigurationVersion)
+    if (_voiceVersions[voice] != _voiceConfigurationVersion)
     {
-        voicePool[voice].onSynthConfigurationChanged(&voiceConfiguration, pendingChanges[voice]);
+        voicePool[voice].onSynthConfigurationChanged(&_voiceConfiguration, _pendingChanges[voice]);
 
-        voiceVersions[voice] = voiceConfigurationVersion;
+        _voiceVersions[voice] = _voiceConfigurationVersion;
 
-        pendingChanges[voice] = 0;
+        _pendingChanges[voice] = 0;
     }
 }
 
@@ -233,13 +231,13 @@ void VoiceController::updateIndicators(uint32_t microSeconds)
         }
     }
 
-    if (microSeconds > nextIndicatorUpdateTime)
+    if (microSeconds > _nextIndicatorUpdateTime)
     {
-        indicators.level(_lastPeak);
+        _indicators->level(_lastPeak);
 
         if (_wasOverdrive)
         {
-            indicators.overdrive(microSeconds);
+            _indicators->overdrive(microSeconds);
 
             _wasOverdrive = false;
         }
@@ -254,12 +252,10 @@ void VoiceController::updateIndicators(uint32_t microSeconds)
             }
         }
 
-        indicators.voices(voiceCount);
+        _indicators->voices(voiceCount);
 
-        nextIndicatorUpdateTime = microSeconds + 50000;
+        _nextIndicatorUpdateTime = microSeconds + 50000;
     }
-
-    indicators.task(microSeconds);
 }
 
 void VoiceController::task(uint32_t microSeconds)

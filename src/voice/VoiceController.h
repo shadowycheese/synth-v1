@@ -8,12 +8,11 @@
 #include "../Constants.h"
 #include "../io/Indicators.h"
 #include "../utils/CallCounter.h"
-#include "../audio/amp2.h"
 
 class VoiceController : public SynthConfigurationListener
 {
 public:
-    VoiceController();
+    VoiceController(Indicators *indicators);
 
     AudioStream &getLeft() { return leftAmp; }
     AudioStream &getRight() { return rightAmp; }
@@ -86,29 +85,29 @@ private:
 
             AudioConnection(leftAmp, 0, peak, 0)};
 
-    byte notesVoiceMap[256];
+    byte _notesVoiceMap[256];
 
     int findOldestVoice(byte note);
 
     // Filter updating
-    int nextFilterToUpdate;
-    uint32_t nextFilterUpdateTime;
+    int _nextFilterToUpdate;
+    uint32_t _nextFilterUpdateTime;
 
     // Voice updating
-    SynthConfiguration voiceConfiguration;
-    int voiceConfigurationVersion;
+    SynthConfiguration _voiceConfiguration;
+    int _voiceConfigurationVersion;
     uint32_t nextVoiceUpdateTime;
-    int nextVoiceToUpdate;
-    int voiceVersions[MAX_VOICES];
-    int pendingChanges[MAX_VOICES];
+    int _nextVoiceToUpdate;
+    int _voiceVersions[MAX_VOICES];
+    int _pendingChanges[MAX_VOICES];
     float peak1f, peak2f, peak3f, peak4f, peak5f;
 
     CallCounter voiceUpdates;
     CallCounter filterUpdates;
 
     // Indicators
-    uint32_t nextIndicatorUpdateTime;
-    Indicators indicators;
+    uint32_t _nextIndicatorUpdateTime;
+    Indicators *_indicators;
     float _lastPeak;
     bool _wasOverdrive;
 };

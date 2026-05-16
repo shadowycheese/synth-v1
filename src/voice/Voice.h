@@ -53,7 +53,6 @@ private:
     AudioEffectEnvelope envelopeLfo1b;
     AudioEffectEnvelope envelopeLfo1c;
     AudioEffectEnvelope envelopeLfo2;
-    AudioEffectEnvelope envelopeFilter;
     AudioAnalyzePeak mixer1Analyze;
     AudioAnalyzePeak mixer2Analyze;
     AudioAnalyzePeak mainMixerAnalyze;
@@ -79,12 +78,12 @@ private:
 
             AudioConnection(oscillators[0], 0, oscillatorMixer1, 0),
             AudioConnection(oscillators[1], 0, oscillatorMixer1, 1),
-            AudioConnection(oscillators[2], 0, oscillatorMixer1, 2),
-            AudioConnection(oscillators[3], 0, oscillatorMixer1, 3),
-            AudioConnection(oscillators[4], 0, oscillatorMixer2, 0),
-            AudioConnection(oscillators[5], 0, oscillatorMixer2, 1),
-            AudioConnection(oscillators[6], 0, oscillatorMixer2, 2),
-            AudioConnection(noise, 0, oscillatorMixer2, 3),
+            AudioConnection(oscillators[3], 0, oscillatorMixer1, 2),
+            AudioConnection(oscillators[5], 0, oscillatorMixer1, 3),
+            AudioConnection(oscillators[2], 0, oscillatorMixer2, 1),
+            AudioConnection(oscillators[4], 0, oscillatorMixer2, 2),
+            AudioConnection(oscillators[6], 0, oscillatorMixer2, 3),
+            AudioConnection(noise, 0, oscillatorMixer2, 0),
 
             AudioConnection(pulseWidths[0], 0, oscillators[0], 1),
             AudioConnection(pulseWidths[1], 0, oscillators[1], 1),
@@ -98,9 +97,7 @@ private:
             AudioConnection(oscillatorMixer2, 0, oscillatorMixerMain, 1),
             AudioConnection(oscillatorMixerMain, 0, filter, 0),
 
-            AudioConnection(lfo2, 0, filterRectifier, 0),
-            AudioConnection(filterRectifier, 0, envelopeFilter, 1),
-            AudioConnection(envelopeFilter, 0, filter, 0),
+            AudioConnection(envelopeLfo2, 0, filter, 1),
             AudioConnection(filter, 0, filterMixer, 0),
             AudioConnection(filter, 2, filterMixer, 1),
             AudioConnection(oscillatorMixerMain, 0, filterMixer, 2),
@@ -123,12 +120,13 @@ private:
     float peak1, peak2, peak3, peak4;
 
     void init();
-    void configureVoice(bool restart);
+    void configureVoice();
     void configureGain();
     void configureFilter();
     void configureEffects();
     void configureOscilators();
     inline void configureLfo(AudioSynthWaveform *lfo, OscillatorConfiguration *config, float frequency);
+    inline void configureUniPolarLfo(AudioSynthWaveform *lfo, OscillatorConfiguration *config, float frequency);
     inline void configureEnvelope(AudioEffectEnvelope *envelope, EnvelopeConfiguration *config);
 };
 

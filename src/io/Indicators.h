@@ -31,6 +31,25 @@ public:
         _targetLevel = level2;
     }
 
+    void keyboardConnected(uint32_t microSeconds, bool connected)
+    {
+        _kbConnected = connected;
+
+        if (connected)
+        {
+            digitalWriteFast(PIN_LED_OVERDRIVE, LOW);
+        }
+        else
+        {
+            digitalWriteFast(PIN_LED_OVERDRIVE, HIGH);
+
+            _targetLevel = 0.0f;
+            _targetAdjTime = microSeconds;
+        }
+
+        write595(0);
+    }
+
     void overdrive(uint32_t microSeconds)
     {
         if (!_active)
@@ -51,13 +70,25 @@ public:
 
         _voiceCount = count;
 
-        digitalWriteFast(PIN_LED_595_LATCH, LOW);
-        shiftOut(PIN_LED_595_DATA, PIN_LED_595_CLOCK, MSBFIRST, _voiceLedValues[count]);
-        digitalWriteFast(PIN_LED_595_LATCH, HIGH);
+        write595(_voiceLedValues[count]);
     }
 
     void task(uint32_t microSeconds)
     {
+        if (!_kbConnected)
+        {
+            if (microSeconds > _targetAdjTime)
+            {
+                write595(_kbLedValues[_kbLeds]);
+
+                _kbLeds = (_kbLeds + 1) % 14;
+
+                _targetAdjTime = microSeconds + 150000;
+            }
+
+            return;
+        }
+
         if (_active && microSeconds > _timeOff)
         {
             _active = false;
@@ -96,6 +127,17 @@ private:
     uint8_t _voiceCount;
     uint8_t _level;
     uint8_t _targetLevel;
+    bool _kbConnected;
+    uint8_t _kbLeds;
+
+    void write595(uint8_t value)
+    {
+        digitalWriteFast(PIN_LED_595_LATCH, LOW);
+        shiftOut(PIN_LED_595_DATA, PIN_LED_595_CLOCK, MSBFIRST, value);
+        digitalWriteFast(PIN_LED_595_LATCH, HIGH);
+    }
+
+    static constexpr uint8_t _kbLedValues[14] = {4, 2, 1, 8, 32, 16, 64, 128, 64, 16, 32, 8, 1, 2};
 
     static constexpr uint8_t _voiceLedValues[9] = {0, 4, 6, 7, 15, 47, 63, 127, 255};
 };

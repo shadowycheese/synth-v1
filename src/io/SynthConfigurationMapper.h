@@ -59,14 +59,14 @@ private:
         &SynthConfigurationMapper::updateFilterType,
         &SynthConfigurationMapper::updateReverbEnabled,
         &SynthConfigurationMapper::updateHalfSaw,
-        &SynthConfigurationMapper::updateLfoRelease,
-        &SynthConfigurationMapper::updateLfoSustain,
-        &SynthConfigurationMapper::updateLfoDecay,
-        &SynthConfigurationMapper::updateLfoAttack,
-        &SynthConfigurationMapper::updateFilterDecay,
-        &SynthConfigurationMapper::updateFilterRelease,
-        &SynthConfigurationMapper::updateFilterAttack,
-        &SynthConfigurationMapper::updateFilterSustain,
+        &SynthConfigurationMapper::updateLfo1Release,
+        &SynthConfigurationMapper::updateLfo1Sustain,
+        &SynthConfigurationMapper::updateLfo1Decay,
+        &SynthConfigurationMapper::updateLfo1Attack,
+        &SynthConfigurationMapper::updateLfo2Decay,
+        &SynthConfigurationMapper::updateLfo2Release,
+        &SynthConfigurationMapper::updateLfo2Attack,
+        &SynthConfigurationMapper::updateLfo2Sustain,
         &SynthConfigurationMapper::updateVoiceRelease,
         &SynthConfigurationMapper::updateVoiceSustain,
         &SynthConfigurationMapper::updateVoiceDecay,
@@ -152,44 +152,44 @@ private:
         return updateRelease(&_localSynthConfiguration.voiceEnvelope, "Voice", ENVELOPE_CHANGED, value);
     }
 
-    int updateFilterAttack(int value)
+    int updateLfo2Attack(int value)
     {
-        return updateAttack(&_localSynthConfiguration.filterEnvelope, "Filter", ENVELOPE_CHANGED, value);
+        return updateAttack(&_localSynthConfiguration.lfo2Envelope, "LFO 2", ENVELOPE_CHANGED, value);
     }
 
-    int updateFilterDecay(int value)
+    int updateLfo2Decay(int value)
     {
-        return updateDecay(&_localSynthConfiguration.filterEnvelope, "Filter", ENVELOPE_CHANGED, value);
+        return updateDecay(&_localSynthConfiguration.lfo2Envelope, "LFO 2", ENVELOPE_CHANGED, value);
     }
 
-    int updateFilterSustain(int value)
+    int updateLfo2Sustain(int value)
     {
-        return updateSustain(&_localSynthConfiguration.filterEnvelope, "Filter", ENVELOPE_CHANGED, value);
+        return updateSustain(&_localSynthConfiguration.lfo2Envelope, "LFO 2", ENVELOPE_CHANGED, value);
     }
 
-    int updateFilterRelease(int value)
+    int updateLfo2Release(int value)
     {
-        return updateRelease(&_localSynthConfiguration.filterEnvelope, "Filter", ENVELOPE_CHANGED, value);
+        return updateRelease(&_localSynthConfiguration.lfo2Envelope, "LFO 2", ENVELOPE_CHANGED, value);
     }
 
-    int updateLfoAttack(int value)
+    int updateLfo1Attack(int value)
     {
-        return updateAttack(&_localSynthConfiguration.lfoEnvelope, "LFO", ENVELOPE_CHANGED, value);
+        return updateAttack(&_localSynthConfiguration.lfo1Envelope, "LFO 1", ENVELOPE_CHANGED, value);
     }
 
-    int updateLfoDecay(int value)
+    int updateLfo1Decay(int value)
     {
-        return updateDecay(&_localSynthConfiguration.lfoEnvelope, "LFO", ENVELOPE_CHANGED, value);
+        return updateDecay(&_localSynthConfiguration.lfo1Envelope, "LFO 1", ENVELOPE_CHANGED, value);
     }
 
-    int updateLfoSustain(int value)
+    int updateLfo1Sustain(int value)
     {
-        return updateSustain(&_localSynthConfiguration.lfoEnvelope, "LFO", ENVELOPE_CHANGED, value);
+        return updateSustain(&_localSynthConfiguration.lfo1Envelope, "LFO 1", ENVELOPE_CHANGED, value);
     }
 
-    int updateLfoRelease(int value)
+    int updateLfo1Release(int value)
     {
-        return updateRelease(&_localSynthConfiguration.lfoEnvelope, "LFO", ENVELOPE_CHANGED, value);
+        return updateRelease(&_localSynthConfiguration.lfo1Envelope, "LFO 1", ENVELOPE_CHANGED, value);
     }
 
     // Volume
@@ -477,11 +477,11 @@ private:
     {
         bool newValue = value < 512 ? true : false;
 
-        if (newValue != _localSynthConfiguration.halfSaw)
+        if (newValue != _localSynthConfiguration.leftSideOnly)
         {
             Serial.printf("Half Saw enabled = %s\n", newValue ? "true" : "false");
 
-            _localSynthConfiguration.halfSaw = newValue;
+            _localSynthConfiguration.leftSideOnly = newValue;
 
             return VOICE_CHANGED;
         }

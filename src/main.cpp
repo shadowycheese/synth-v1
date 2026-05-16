@@ -11,7 +11,9 @@ AudioOutputI2S i2s1;
 AudioControlSGTL5000 sgtl5000;
 AudioSynthWaveform waveForm;
 
-VoiceController voiceController;
+Indicators indicators;
+
+VoiceController voiceController(&indicators);
 
 SynthConfiguration synthConfiguration;
 SynthConfigurationMapper configurationMapper(&synthConfiguration, &voiceController);
@@ -79,6 +81,8 @@ void setup()
     usbMidi1.setHandleControlChange(midiControlChange);
 
     configurationOrchestrator.begin();
+
+    indicators.keyboardConnected(0, false);
 }
 
 bool isKeyboardConnected()
@@ -88,11 +92,14 @@ bool isKeyboardConnected()
 
     if (usbMidi1)
     {
-        // This will print ONLY when the keyboard is physically recognized
         if (!connected)
         {
             Serial.println("Keyboard Connected!");
+
+            indicators.keyboardConnected(0, true);
+
             connected = true;
+            disconnected = false;
         }
 
         return true;
@@ -102,6 +109,10 @@ bool isKeyboardConnected()
         if (!disconnected)
         {
             Serial.println("Keyboard NOT detected...");
+
+            indicators.keyboardConnected(0, false);
+
+            connected = false;
             disconnected = true;
         }
 
@@ -132,6 +143,7 @@ void loop()
     logAudioCPU();
 
     myusb.Task();
+    indicators.task(microSeconds);
 
     if (!isKeyboardConnected())
     {

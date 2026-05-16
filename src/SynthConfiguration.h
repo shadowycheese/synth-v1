@@ -100,8 +100,8 @@ public:
 
     // Envelope parameters
     EnvelopeConfiguration voiceEnvelope;
-    EnvelopeConfiguration filterEnvelope;
-    EnvelopeConfiguration lfoEnvelope;
+    EnvelopeConfiguration lfo1Envelope;
+    EnvelopeConfiguration lfo2Envelope;
 
     // Filter parameters
     bool filterEnabled;
@@ -113,7 +113,7 @@ public:
 
     // Voice parameters
     float pitchBend = 0;
-    bool halfSaw = 0;
+    bool leftSideOnly = 0;
     float noiseGain;
     float maxDetune;
 
@@ -130,22 +130,23 @@ public:
     void copy(SynthConfiguration *source)
     {
         voiceEnvelope.copy(&(source->voiceEnvelope));
-        filterEnvelope.copy(&(source->filterEnvelope));
-        lfoEnvelope.copy(&(source->lfoEnvelope));
+        lfo1Envelope.copy(&(source->lfo1Envelope));
+        lfo2Envelope.copy(&(source->lfo2Envelope));
 
         delayEnabled = source->delayEnabled;
         reverbEnabled = source->reverbEnabled;
         reverb = source->reverb;
         keyTracking = source->keyTracking;
         delay = source->delay;
-        halfSaw = source->halfSaw;
+        leftSideOnly = source->leftSideOnly;
         lowPass = source->lowPass;
         resonance = source->resonance;
         pitchBend = source->pitchBend;
 
         lfo1.copy(&(source->lfo1));
         lfo2.copy(&(source->lfo2));
-        lfo2.copy(&(source->lfo3));
+        lfo3.copy(&(source->lfo3));
+
         octaveControl = source->octaveControl;
         filterCutoff = source->filterCutoff;
         filterEnabled = source->filterEnabled;
@@ -154,11 +155,12 @@ public:
 
         for (int i = 0; i < 4; i++)
         {
+            oscillators[i].copy(&(source->oscillators[i]));
+
             if (oscillators[i].detune > maxDetune)
             {
                 maxDetune = oscillators[i].detune;
             }
-            oscillators[i].copy(&(source->oscillators[i]));
         }
 
         masterVolume = source->masterVolume;

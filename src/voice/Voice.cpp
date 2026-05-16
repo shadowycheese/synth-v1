@@ -41,9 +41,8 @@ void Voice::noteOn(byte note, float frequency, float gain)
 
     configureGain();
     configureFilter();
-    configureVoice(false);
+    configureVoice();
 
-    envelopeFilter.noteOn();
     envelopeVoice.noteOn();
     envelopeLfo1a.noteOn();
     envelopeLfo1b.noteOn();
@@ -57,7 +56,6 @@ void Voice::noteOn(byte note, float frequency, float gain)
 void Voice::noteOff()
 {
     envelopeVoice.noteOff();
-    envelopeFilter.noteOff();
     envelopeLfo1a.noteOff();
     envelopeLfo1b.noteOff();
     envelopeLfo1c.noteOff();
@@ -101,11 +99,12 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
 
     if (envelopeChanged(changeFlags))
     {
-        configureEnvelope(&envelopeLfo1a, &_voiceConfiguration.lfoEnvelope);
-        configureEnvelope(&envelopeLfo1b, &_voiceConfiguration.lfoEnvelope);
-        configureEnvelope(&envelopeLfo1c, &_voiceConfiguration.lfoEnvelope);
-        configureEnvelope(&envelopeLfo2, &_voiceConfiguration.lfoEnvelope);
-        configureEnvelope(&envelopeFilter, &_voiceConfiguration.filterEnvelope);
+        configureEnvelope(&envelopeLfo1a, &_voiceConfiguration.lfo1Envelope);
+        configureEnvelope(&envelopeLfo1b, &_voiceConfiguration.lfo1Envelope);
+        configureEnvelope(&envelopeLfo1c, &_voiceConfiguration.lfo1Envelope);
+
+        Serial.printf("FILTER ");
+        configureEnvelope(&envelopeLfo2, &_voiceConfiguration.lfo2Envelope);
         configureEnvelope(&envelopeVoice, &_voiceConfiguration.voiceEnvelope);
     }
 
@@ -114,7 +113,7 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
         configureLfo(&lfo1a, &_voiceConfiguration.lfo1, _frequency);
         configureLfo(&lfo1b, &_voiceConfiguration.lfo1, _frequency);
         configureLfo(&lfo1c, &_voiceConfiguration.lfo1, _frequency);
-        configureLfo(&lfo2, &_voiceConfiguration.lfo2, _frequency);
+        configureUniPolarLfo(&lfo2, &_voiceConfiguration.lfo2, _frequency);
     }
 
     if (effectChanged(changeFlags))
@@ -143,7 +142,7 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
 
     if (envelopeVoice.isActive() && (restartOscillators || updateVoice))
     {
-        configureVoice(restartOscillators);
+        configureVoice();
     }
 }
 
@@ -152,16 +151,14 @@ bool Voice::isPlaying()
     return envelopeVoice.isActive();
 }
 
-void Voice::configureVoice(bool restartOscillators)
+void Voice::configureVoice()
 {
     float frequency = _frequency * (1.0 + _voiceConfiguration.pitchBend);
 
-    Serial.printf("main freq: %0.3f (%0.3f), max detune: %0.5f, resonance: %0.3f, halfsaw: %d\n",
+    Serial.printf("main freq: %0.3f (%0.3f), max detune: %0.5f\n",
                   frequency,
                   _frequency,
-                  _voiceConfiguration.maxDetune,
-                  _voiceConfiguration.resonance,
-                  _voiceConfiguration.halfSaw);
+                  _voiceConfiguration.maxDetune);
 
     if (_voiceConfiguration.lfo1.frequency == 0.0f)
     {
@@ -187,13 +184,9 @@ void Voice::configureVoice(bool restartOscillators)
         float lf = frequency * powf(2.0f, centsL / 1200.0f);
         float rf = frequency * powf(2.0f, centsR / 1200.0f);
 
-        uint8_t wf = _voiceConfiguration.audioWaveform(i + 1);
-
-        Serial.printf("freq: %0.3f / freq: %0.3f waveform:%d (%s)\n",
+        Serial.printf("freq: %5.3f / freq: %5.3f\n",
                       lf,
-                      rf,
-                      wf,
-                      restartOscillators ? "(restart)" : "");
+                      rf);
 
         oscillators[l].frequency(lf);
         oscillators[r].frequency(rf);
@@ -203,7 +196,18 @@ void Voice::configureVoice(bool restartOscillators)
 void Voice::configureLfo(AudioSynthWaveform *lfo, OscillatorConfiguration *config, float frequency)
 {
     lfo->amplitude(config->amplitude);
-    lfo->frequency(config->frequency == 0.0f ? frequency : config->frequency);
+    lfo->frequency(config->frequency == 0.0f ? frequency / 16 : config->frequency);
+    lfo->pulseWidth(config->pulseWidth);
+}
+
+void Voice::configureUniPolarLfo(AudioSynthWaveform *lfo, OscillatorConfiguration *config, float frequency)
+{
+    float amplitude = min(0.0001, config->amplitude);
+    float offset = 1.0f - amplitude;
+
+    lfo->amplitude(amplitude / 2);
+    lfo->offset(offset);
+    lfo->frequency(config->frequency == 0.0f ? frequency / 16 : config->frequency);
     lfo->pulseWidth(config->pulseWidth);
 }
 
@@ -213,23 +217,32 @@ void Voice::configureEffects()
 
 void Voice::configureGain()
 {
-    float osc0Gain = _gain * _voiceConfiguration.oscillators[0].gain;
-    float osc1Gain = _gain * _voiceConfiguration.oscillators[1].gain;
-    float osc2Gain = _gain * _voiceConfiguration.oscillators[2].gain;
-    float osc3Gain = _gain * _voiceConfiguration.oscillators[3].gain;
-    float noiseGain = _gain * _voiceConfiguration.noiseGain;
+    float gain = _voiceConfiguration.leftSideOnly ? _gain * 2.0f : _gain;
 
-    Serial.printf("Gain: %0.2f %0.2f %0.2f %0.2f\n", osc0Gain, osc1Gain, osc2Gain, osc3Gain);
+    float osc0Gain = gain * _voiceConfiguration.oscillators[0].gain;
+    float osc1Gain = gain * _voiceConfiguration.oscillators[1].gain;
+    float osc2Gain = gain * _voiceConfiguration.oscillators[2].gain;
+    float osc3Gain = gain * _voiceConfiguration.oscillators[3].gain;
 
     oscillatorMixer1.gain(0, osc0Gain);
     oscillatorMixer1.gain(1, osc1Gain);
-    oscillatorMixer1.gain(2, osc1Gain);
-    oscillatorMixer1.gain(3, osc2Gain);
+    oscillatorMixer1.gain(2, osc2Gain);
+    oscillatorMixer1.gain(3, osc3Gain);
 
-    oscillatorMixer2.gain(0, osc2Gain);
-    oscillatorMixer2.gain(1, osc3Gain);
-    oscillatorMixer2.gain(2, osc3Gain);
-    oscillatorMixer2.gain(3, noiseGain);
+    oscillatorMixer2.gain(0, _gain * _voiceConfiguration.noiseGain);
+
+    if (_voiceConfiguration.leftSideOnly)
+    {
+        oscillatorMixer2.gain(1, 0.0f);
+        oscillatorMixer2.gain(2, 0.0f);
+        oscillatorMixer2.gain(3, 0.0f);
+    }
+    else
+    {
+        oscillatorMixer2.gain(1, osc1Gain);
+        oscillatorMixer2.gain(2, osc2Gain);
+        oscillatorMixer2.gain(3, osc3Gain);
+    }
 }
 
 void Voice::configureFilter()
@@ -243,15 +256,15 @@ void Voice::configureFilter()
     if (_voiceConfiguration.keyTracking > 0.0f)
     {
         float noteFrequency = (_frequency * (_voiceConfiguration.pitchBend + 1.0f));
-        float refFrequency = 110.0f;
+        float refFrequency = 440.0f;
 
         cutoffFrequency = cutoffFrequency * powf(noteFrequency / refFrequency, _voiceConfiguration.keyTracking);
     }
 
+    cutoffFrequency = min(cutoffFrequency, 12000);
+
     float maxOctaves = log2f(12000 / cutoffFrequency);
     float octaves = max(0, min(maxOctaves, _voiceConfiguration.octaveControl));
-
-    Serial.printf("cutoff %0.1f, omax %0.3f, oct %0.3f\n", cutoffFrequency, maxOctaves, octaves);
 
     filter.frequency(cutoffFrequency);
     filter.octaveControl(octaves);
@@ -259,18 +272,24 @@ void Voice::configureFilter()
 
     if (!_voiceConfiguration.filterEnabled)
     {
+        Serial.printf("DISABLED: cutoff %0.1f, omax %0.3f, oct %0.3f\n", cutoffFrequency, maxOctaves, octaves);
+
         filterMixer.gain(0, 0.0f);
         filterMixer.gain(1, 0.0f);
         filterMixer.gain(2, 1.0f);
     }
     else if (_voiceConfiguration.lowPass)
     {
+        Serial.printf("LOWPASS: cutoff %0.1f, omax %0.3f, oct %0.3f\n", cutoffFrequency, maxOctaves, octaves);
+
         filterMixer.gain(0, 1.0f);
         filterMixer.gain(1, 0.0f);
         filterMixer.gain(2, 0.0f);
     }
     else
     {
+        Serial.printf("BANDPASS: cutoff %0.1f, omax %0.3f, oct %0.3f\n", cutoffFrequency, maxOctaves, octaves);
+
         filterMixer.gain(0, 0.0f);
         filterMixer.gain(1, 1.0f);
         filterMixer.gain(2, 0.0f);
@@ -281,6 +300,8 @@ void Voice::configureFilter()
 
 inline void Voice::configureEnvelope(AudioEffectEnvelope *envelope, EnvelopeConfiguration *config)
 {
+    Serial.printf("ENVELOPE: A %0.1f, D %0.3f, S %0.3f, R %0.3f\n", config->attack, config->decay, config->sustain, config->release);
+
     envelope->attack(config->attack);
     envelope->decay(config->decay);
     envelope->sustain(config->sustain);
