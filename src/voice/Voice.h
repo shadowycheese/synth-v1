@@ -38,9 +38,9 @@ private:
     AudioMixer4 modMixer;
 
     AudioSynthWaveform lfo1a;
-    AudioSynthWaveform lfo2a;
     AudioSynthWaveform lfo1b;
-    AudioSynthWaveform lfo2b;
+    AudioSynthWaveform lfo1c;
+    AudioSynthWaveform lfo2;
 
     AudioSynthWaveformDc filterLevel;
     AudioSynthWaveformModulated oscillators[7];
@@ -51,28 +51,31 @@ private:
     AudioEffectEnvelope envelopeVoice;
     AudioEffectEnvelope envelopeLfo1a;
     AudioEffectEnvelope envelopeLfo1b;
-    AudioEffectEnvelope envelopeLfo2a;
-    AudioEffectEnvelope envelopeLfo2b;
+    AudioEffectEnvelope envelopeLfo1c;
+    AudioEffectEnvelope envelopeLfo2;
     AudioEffectEnvelope envelopeFilter;
     AudioAnalyzePeak mixer1Analyze;
     AudioAnalyzePeak mixer2Analyze;
     AudioAnalyzePeak mainMixerAnalyze;
     AudioAnalyzePeak filterAnalyze;
+    AudioEffectRectifier filterRectifier;
 
     AudioMixer4 filterMixer;
 
     AudioConnection patches[40] =
         {
             AudioConnection(lfo1a, 0, envelopeLfo1a, 0),
-            AudioConnection(lfo2a, 0, envelopeLfo2a, 0),
+            AudioConnection(lfo1b, 0, envelopeLfo1b, 0),
+            AudioConnection(lfo1c, 0, envelopeLfo1c, 0),
+            AudioConnection(lfo2, 0, envelopeLfo2, 0),
 
             AudioConnection(envelopeLfo1a, 0, oscillators[0], 0),
-            AudioConnection(envelopeLfo1a, 0, oscillators[1], 0),
+            AudioConnection(envelopeLfo1b, 0, oscillators[1], 0),
             AudioConnection(envelopeLfo1b, 0, oscillators[2], 0),
-            AudioConnection(envelopeLfo2a, 0, oscillators[3], 0),
-            AudioConnection(envelopeLfo2b, 0, oscillators[4], 0),
-            AudioConnection(envelopeLfo2a, 0, oscillators[5], 0),
-            AudioConnection(envelopeLfo2b, 0, oscillators[6], 0),
+            AudioConnection(envelopeLfo1c, 0, oscillators[3], 0),
+            AudioConnection(envelopeLfo1c, 0, oscillators[4], 0),
+            AudioConnection(envelopeLfo1a, 0, oscillators[5], 0),
+            AudioConnection(envelopeLfo1a, 0, oscillators[6], 0),
 
             AudioConnection(oscillators[0], 0, oscillatorMixer1, 0),
             AudioConnection(oscillators[1], 0, oscillatorMixer1, 1),
@@ -95,10 +98,11 @@ private:
             AudioConnection(oscillatorMixer2, 0, oscillatorMixerMain, 1),
             AudioConnection(oscillatorMixerMain, 0, filter, 0),
 
-            AudioConnection(filterLevel, 0, envelopeFilter, 1),
+            AudioConnection(lfo2, 0, filterRectifier, 0),
+            AudioConnection(filterRectifier, 0, envelopeFilter, 1),
             AudioConnection(envelopeFilter, 0, filter, 0),
             AudioConnection(filter, 0, filterMixer, 0),
-            AudioConnection(filter, 1, filterMixer, 1),
+            AudioConnection(filter, 2, filterMixer, 1),
             AudioConnection(oscillatorMixerMain, 0, filterMixer, 2),
 
             AudioConnection(filterMixer, 0, envelopeVoice, 0),

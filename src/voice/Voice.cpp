@@ -26,13 +26,12 @@ void Voice::init()
 
     lfo1a.amplitude(1.0f);
     lfo1b.amplitude(1.0f);
-    lfo2a.amplitude(1.0f);
-    lfo2b.amplitude(1.0f);
+    lfo1c.amplitude(1.0f);
+    lfo2.amplitude(1.0f);
 
     lfo1a.phase(0.0f);
-    lfo1b.phase(60.0f);
-    lfo2a.phase(120.0f);
-    lfo2b.phase(240.0f);
+    lfo1b.phase(120.0f);
+    lfo1c.phase(240.0f);
 }
 
 void Voice::noteOn(byte note, float frequency, float gain)
@@ -48,8 +47,8 @@ void Voice::noteOn(byte note, float frequency, float gain)
     envelopeVoice.noteOn();
     envelopeLfo1a.noteOn();
     envelopeLfo1b.noteOn();
-    envelopeLfo2a.noteOn();
-    envelopeLfo2b.noteOn();
+    envelopeLfo1c.noteOn();
+    envelopeLfo2.noteOn();
 
     _note = note;
     _timestamp = millis();
@@ -61,8 +60,8 @@ void Voice::noteOff()
     envelopeFilter.noteOff();
     envelopeLfo1a.noteOff();
     envelopeLfo1b.noteOff();
-    envelopeLfo2a.noteOff();
-    envelopeLfo2b.noteOff();
+    envelopeLfo1c.noteOff();
+    envelopeLfo2.noteOff();
 }
 
 void Voice::updateFilter()
@@ -104,8 +103,8 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
     {
         configureEnvelope(&envelopeLfo1a, &_voiceConfiguration.lfoEnvelope);
         configureEnvelope(&envelopeLfo1b, &_voiceConfiguration.lfoEnvelope);
-        configureEnvelope(&envelopeLfo2a, &_voiceConfiguration.lfoEnvelope);
-        configureEnvelope(&envelopeLfo2a, &_voiceConfiguration.lfoEnvelope);
+        configureEnvelope(&envelopeLfo1c, &_voiceConfiguration.lfoEnvelope);
+        configureEnvelope(&envelopeLfo2, &_voiceConfiguration.lfoEnvelope);
         configureEnvelope(&envelopeFilter, &_voiceConfiguration.filterEnvelope);
         configureEnvelope(&envelopeVoice, &_voiceConfiguration.voiceEnvelope);
     }
@@ -113,9 +112,9 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
     if (lfoChanged(changeFlags))
     {
         configureLfo(&lfo1a, &_voiceConfiguration.lfo1, _frequency);
-        configureLfo(&lfo1b, &_voiceConfiguration.lfo2, _frequency);
-        configureLfo(&lfo2a, &_voiceConfiguration.lfo1, _frequency);
-        configureLfo(&lfo2b, &_voiceConfiguration.lfo2, _frequency);
+        configureLfo(&lfo1b, &_voiceConfiguration.lfo1, _frequency);
+        configureLfo(&lfo1c, &_voiceConfiguration.lfo1, _frequency);
+        configureLfo(&lfo2, &_voiceConfiguration.lfo2, _frequency);
     }
 
     if (effectChanged(changeFlags))
@@ -168,11 +167,7 @@ void Voice::configureVoice(bool restartOscillators)
     {
         lfo1a.frequency(frequency / 2);
         lfo1b.frequency(frequency / 2);
-    }
-    if (_voiceConfiguration.lfo2.frequency == 0.0f)
-    {
-        lfo2a.frequency(frequency / 2);
-        lfo2b.frequency(frequency / 2);
+        lfo1c.frequency(frequency / 2);
     }
 
     pulseWidths[0].amplitude(2.0f * (_voiceConfiguration.oscillators[0].pulseWidth - 0.5f));
@@ -239,41 +234,30 @@ void Voice::configureGain()
 
 void Voice::configureFilter()
 {
-    if (_voiceConfiguration.autoCutoff)
+    float minFrequency = 30.0f;
+    float maxFrequency = 8000.0f;
+
+    float shaped = powf(_voiceConfiguration.filterCutoff, 1.5f);
+    float cutoffFrequency = minFrequency * powf(maxFrequency / minFrequency, shaped);
+
+    if (_voiceConfiguration.keyTracking > 0.0f)
     {
-        float frequency = (_frequency * (_voiceConfiguration.pitchBend + 1.0f)) * _voiceConfiguration.keyTracking;
+        float noteFrequency = (_frequency * (_voiceConfiguration.pitchBend + 1.0f));
+        float refFrequency = 110.0f;
 
-        float minFrequency = frequency / (_voiceConfiguration.lowPass ? 2 : 4);
-        float maxFrequency = frequency * (_voiceConfiguration.lowPass ? 4 : 2);
-
-        float offset = _voiceConfiguration.filterCutoff * (maxFrequency - minFrequency) + minFrequency;
-
-        filter.frequency(offset);
-
-        float maxOctaves = offset == 0 ? _voiceConfiguration.octaveControl : log2f(12000 / offset);
-
-        float octaves = min(maxOctaves, _voiceConfiguration.octaveControl);
-
-        Serial.printf("Filter (A): base %0.1f (%0.1f) min %0.1f, max %0.1f, used %0.1f, omax %0.3f, oct %0.3f\n", frequency, _frequency, minFrequency, maxFrequency, offset, maxOctaves, octaves);
-
-        filter.octaveControl(octaves);
-    }
-    else
-    {
-        float offset = powf(2.0f, 5.0f + (_voiceConfiguration.filterCutoff * 6.0f));
-
-        filter.frequency(offset);
-
-        float maxOctaves = log2f(12000 / offset);
-
-        float octaves = min(maxOctaves, _voiceConfiguration.octaveControl);
-
-        // Serial.printf("Filter (M): used %0.1f, omax %0.3f, oct %0.3f\n", offset, maxOctaves, octaves);
-
-        filter.octaveControl(octaves);
+        cutoffFrequency = cutoffFrequency * powf(noteFrequency / refFrequency, _voiceConfiguration.keyTracking);
     }
 
-    if (_voiceConfiguration.filterCutoff == 0.0)
+    float maxOctaves = log2f(12000 / cutoffFrequency);
+    float octaves = max(0, min(maxOctaves, _voiceConfiguration.octaveControl));
+
+    Serial.printf("cutoff %0.1f, omax %0.3f, oct %0.3f\n", cutoffFrequency, maxOctaves, octaves);
+
+    filter.frequency(cutoffFrequency);
+    filter.octaveControl(octaves);
+    filter.resonance(_voiceConfiguration.resonance);
+
+    if (!_voiceConfiguration.filterEnabled)
     {
         filterMixer.gain(0, 0.0f);
         filterMixer.gain(1, 0.0f);
@@ -292,8 +276,6 @@ void Voice::configureFilter()
         filterMixer.gain(2, 0.0f);
     }
 
-    filter.resonance(_voiceConfiguration.resonance);
-
     updateFilter();
 }
 
@@ -309,8 +291,8 @@ void Voice::configureOscilators()
 {
     lfo1a.begin(_voiceConfiguration.audioWaveformLfo1());
     lfo1a.begin(_voiceConfiguration.audioWaveformLfo1());
-    lfo2a.begin(_voiceConfiguration.audioWaveformLfo2());
-    lfo2b.begin(_voiceConfiguration.audioWaveformLfo2());
+    lfo1c.begin(_voiceConfiguration.audioWaveformLfo1());
+    lfo2.begin(_voiceConfiguration.audioWaveformLfo2());
 
     uint8_t wf = _voiceConfiguration.audioWaveform(0);
 

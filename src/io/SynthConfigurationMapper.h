@@ -55,7 +55,7 @@ private:
         &SynthConfigurationMapper::noOp};
 
     Func mux1Inputs[16] = {
-        &SynthConfigurationMapper::updateAutoCutoff,
+        &SynthConfigurationMapper::updateFilterEnabled,
         &SynthConfigurationMapper::updateFilterType,
         &SynthConfigurationMapper::updateReverbEnabled,
         &SynthConfigurationMapper::updateHalfSaw,
@@ -100,8 +100,8 @@ private:
         &SynthConfigurationMapper::updateOscillatorGain2,
         &SynthConfigurationMapper::updateOscillatorGain3,
         &SynthConfigurationMapper::updateAmpGain,
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::updateLfo3Amplitude,
+        &SynthConfigurationMapper::updateLfo3Frequency,
         &SynthConfigurationMapper::updateReverb,
         &SynthConfigurationMapper::updateNoiseAmplitude,
         &SynthConfigurationMapper::updateDetune1,
@@ -256,6 +256,11 @@ private:
         return updateOscillatorWaveform(&_localSynthConfiguration.lfo2, "LFO 2", WAVEFORM_CHANGED, value);
     }
 
+    int updateLfo3Waveform(int value)
+    {
+        return updateOscillatorWaveform(&_localSynthConfiguration.lfo2, "LFO 3", WAVEFORM_CHANGED, value);
+    }
+
     // Voice configuration
     int updateOscillatorGain0(int value)
     {
@@ -340,7 +345,17 @@ private:
 
     int updateLfo2Amplitude(int value)
     {
-        return updateOscillatorAmplitude(&_localSynthConfiguration.lfo2, "LFO 3", LFO_CHANGED, value);
+        return updateOscillatorAmplitude(&_localSynthConfiguration.lfo2, "LFO 2", LFO_CHANGED, value);
+    }
+
+    int updateLfo3Frequency(int value)
+    {
+        return updateOscillatorFrequency(&_localSynthConfiguration.lfo3, "LFO 3", LFO_CHANGED, value);
+    }
+
+    int updateLfo3Amplitude(int value)
+    {
+        return updateOscillatorAmplitude(&_localSynthConfiguration.lfo3, "LFO 3", LFO_CHANGED, value);
     }
 
     int updateOctaveControl(int value)
@@ -360,15 +375,15 @@ private:
         return 0;
     }
 
-    int updateAutoCutoff(int value)
+    int updateFilterEnabled(int value)
     {
         bool newValue = value < 512 ? true : false;
 
-        if (newValue != _localSynthConfiguration.autoCutoff)
+        if (newValue != _localSynthConfiguration.filterEnabled)
         {
-            Serial.printf("Is auto cutoff = %s\n", newValue ? "true" : "false");
+            Serial.printf("Is filter enabled = %s\n", newValue ? "true" : "false");
 
-            _localSynthConfiguration.autoCutoff = newValue;
+            _localSynthConfiguration.filterEnabled = newValue;
 
             return FILTER_CHANGED;
         }

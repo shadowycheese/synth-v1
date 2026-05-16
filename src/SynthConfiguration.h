@@ -96,6 +96,7 @@ public:
     OscillatorConfiguration oscillators[4];
     OscillatorConfiguration lfo1;
     OscillatorConfiguration lfo2;
+    OscillatorConfiguration lfo3;
 
     // Envelope parameters
     EnvelopeConfiguration voiceEnvelope;
@@ -103,7 +104,7 @@ public:
     EnvelopeConfiguration lfoEnvelope;
 
     // Filter parameters
-    bool autoCutoff;
+    bool filterEnabled;
     bool lowPass;
     float filterCutoff;
     float resonance = 0;
@@ -144,9 +145,10 @@ public:
 
         lfo1.copy(&(source->lfo1));
         lfo2.copy(&(source->lfo2));
+        lfo2.copy(&(source->lfo3));
         octaveControl = source->octaveControl;
         filterCutoff = source->filterCutoff;
-        autoCutoff = source->autoCutoff;
+        filterEnabled = source->filterEnabled;
         noiseGain = source->noiseGain;
         maxDetune = 0;
 

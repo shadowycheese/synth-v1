@@ -28,6 +28,10 @@ void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configurat
         rightAmp.gain(voiceConfiguration.ampGain * 5.0f);
     }
 
+    if (lfoChanged(changeFlags))
+    {
+    }
+
     if (effectChanged(changeFlags))
     {
         if (voiceConfiguration.reverbEnabled)

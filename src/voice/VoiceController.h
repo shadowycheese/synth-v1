@@ -8,6 +8,7 @@
 #include "../Constants.h"
 #include "../io/Indicators.h"
 #include "../utils/CallCounter.h"
+#include "../audio/amp2.h"
 
 class VoiceController : public SynthConfigurationListener
 {
