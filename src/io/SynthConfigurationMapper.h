@@ -11,10 +11,12 @@
 class SynthConfigurationMapper : public ControllerIoListener
 {
 public:
-    SynthConfigurationMapper(SynthConfiguration *configuration, SynthConfigurationListener *configuratonListener)
+    SynthConfigurationMapper(SynthConfiguration *configuration, SynthConfigurationListener *configuratonListener, WaveformStore *wfStore)
     {
         _synthConfiguration = configuration;
         _synthConfigurationListener = configuratonListener;
+
+        _localSynthConfiguration.waveformStore = wfStore;
     }
 
     void commit()
@@ -55,9 +57,9 @@ private:
         &SynthConfigurationMapper::noOp};
 
     Func mux1Inputs[16] = {
-        &SynthConfigurationMapper::updateFilterEnabled,
+        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::noOp,
         &SynthConfigurationMapper::updateFilterType,
-        &SynthConfigurationMapper::updateReverbEnabled,
         &SynthConfigurationMapper::updateHalfSaw,
         &SynthConfigurationMapper::updateLfo1Release,
         &SynthConfigurationMapper::updateLfo1Sustain,
@@ -100,8 +102,8 @@ private:
         &SynthConfigurationMapper::updateOscillatorGain2,
         &SynthConfigurationMapper::updateOscillatorGain3,
         &SynthConfigurationMapper::updateAmpGain,
-        &SynthConfigurationMapper::updateLfo3Amplitude,
-        &SynthConfigurationMapper::updateLfo3Frequency,
+        &SynthConfigurationMapper::updateDecoherence,
+        &SynthConfigurationMapper::updateDelay,
         &SynthConfigurationMapper::updateReverb,
         &SynthConfigurationMapper::updateNoiseAmplitude,
         &SynthConfigurationMapper::updateDetune1,
@@ -375,33 +377,17 @@ private:
         return 0;
     }
 
-    int updateFilterEnabled(int value)
+    int updateDecoherence(int value)
     {
-        bool newValue = value < 512 ? true : false;
+        float newValue = getScaledValue(value, 1);
 
-        if (newValue != _localSynthConfiguration.filterEnabled)
+        if (newValue != _localSynthConfiguration.decoherence)
         {
-            Serial.printf("Is filter enabled = %s\n", newValue ? "true" : "false");
+            Serial.printf("LFO Decoherence = %0.3f\n", newValue);
 
-            _localSynthConfiguration.filterEnabled = newValue;
+            _localSynthConfiguration.decoherence = newValue;
 
-            return FILTER_CHANGED;
-        }
-
-        return 0;
-    }
-
-    int updateReverbEnabled(int value)
-    {
-        bool newValue = value < 512 ? true : false;
-
-        if (newValue != _localSynthConfiguration.reverbEnabled)
-        {
-            Serial.printf("Reverb enabled = %s\n", newValue ? "true" : "false");
-
-            _localSynthConfiguration.reverbEnabled = newValue;
-
-            return EFFECT_CHANGED;
+            return LFO_CHANGED;
         }
 
         return 0;
@@ -441,31 +427,13 @@ private:
 
     int updateDelay(int value)
     {
-        value = 1023 - value;
-
-        float newValue = getScaledValue(value, 1) * 250.0f;
+        float newValue = getScaledValue(value, 1) * 100.0f;
 
         if (newValue != _localSynthConfiguration.delay)
         {
             Serial.printf("Delay = %0.3f\n", newValue);
 
             _localSynthConfiguration.delay = newValue;
-
-            return EFFECT_CHANGED;
-        }
-
-        return 0;
-    }
-
-    int updateDelayEnabled(int value)
-    {
-        bool newValue = value >= 512 ? true : false;
-
-        if (newValue != _localSynthConfiguration.delayEnabled)
-        {
-            Serial.printf("Delay enabled = %s\n", newValue ? "true" : "false");
-
-            _localSynthConfiguration.delayEnabled = newValue;
 
             return EFFECT_CHANGED;
         }
@@ -690,7 +658,7 @@ private:
 
     int updateOscillatorWaveform(OscillatorConfiguration *oscillator, const char *name, int changeFlag, int value)
     {
-        int newValue = (value / 170) % 6;
+        int newValue = (value / 143) % 7;
 
         if (newValue != oscillator->waveform)
         {
@@ -763,70 +731,6 @@ private:
         return fastPow(valueF, order);
     }
 
-    float getMidScaledValue(int value, int order)
-    {
-        if (value > (1023 - DEAD_ZONE))
-        {
-            if (currentGroup == 2 && currentInput == 6)
-            {
-                Serial.printf("= %d => 1.000\n", value);
-            }
-
-            return 1.0f;
-        }
-
-        if (value < DEAD_ZONE)
-        {
-            if (currentGroup == 2 && currentInput == 6)
-            {
-                Serial.printf("= %d => 0.000\n", value);
-            }
-
-            return 0.0f;
-        }
-
-        int centreMin = 512 - (DEAD_ZONE >> 1);
-        int centreMax = centreMin + DEAD_ZONE;
-
-        if (value < centreMin)
-        {
-            float range = centreMin - DEAD_ZONE;
-            float valueF = (float)(value - DEAD_ZONE);
-
-            if (currentGroup == 2 && currentInput == 6)
-            {
-                Serial.printf("< %0.3f / %0.3f\n", range, valueF);
-            }
-            valueF = (0.5f - (valueF / range));
-            valueF = fastPow(valueF, order);
-
-            return 0.5f - valueF;
-        }
-        else if (value > centreMax)
-        {
-            float range = 1023.0f - (centreMax + DEAD_ZONE);
-            float valueF = (float)(value - centreMax);
-
-            if (currentGroup == 2 && currentInput == 6)
-            {
-                Serial.printf("> %d => %0.3f / %0.3f\n", value, range, valueF);
-            }
-            valueF = valueF / range;
-            valueF = fastPow(valueF, order);
-
-            return valueF + 0.5f;
-        }
-        else
-        {
-            if (currentGroup == 2 && currentInput == 6)
-            {
-                Serial.printf("= %d => 0.500\n", value);
-            }
-
-            return 0.5f;
-        }
-    }
-
     inline float fastPow(float value, int p)
     {
         for (int i = 1; i < p; i++)
@@ -836,8 +740,6 @@ private:
 
         return value;
     }
-
-    int tmpStore[128];
 };
 
 #endif

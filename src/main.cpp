@@ -6,17 +6,19 @@
 #include "Constants.h"
 #include "io/SynthConfigurationOrchestrator.h"
 #include "io/SynthConfigurationMapper.h"
+#include "store/WaveformStore.h"
 
 AudioOutputI2S i2s1;
 AudioControlSGTL5000 sgtl5000;
-AudioSynthWaveform waveForm;
 
 Indicators indicators;
 
 VoiceController voiceController(&indicators);
 
+WaveformStore waveformStore;
+
 SynthConfiguration synthConfiguration;
-SynthConfigurationMapper configurationMapper(&synthConfiguration, &voiceController);
+SynthConfigurationMapper configurationMapper(&synthConfiguration, &voiceController, &waveformStore);
 
 SynthConfigurationOrchestrator configurationOrchestrator(&configurationMapper);
 
@@ -47,6 +49,11 @@ void midiControlChange(byte channel, byte control, byte value)
     configurationOrchestrator.midiHandler()->midiControl(control, value);
 }
 
+void midiHandleSystemExclusive(byte *array, unsigned int size)
+{
+    waveformStore.midiHandleSystemExclusive(array, size);
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -54,7 +61,8 @@ void setup()
     // Allocate memory for the audio engine
     AudioMemory(1200);
 
-    sgtl5000.muteLineout();
+    indicators.voices(8);
+    ;
     sgtl5000.lineOutLevel(31);
     sgtl5000.enable();
 
@@ -62,16 +70,20 @@ void setup()
     sgtl5000.volume(0.3);
     sgtl5000.unmuteHeadphone();
 
+    uint8_t flash = 0;
+
+    indicators.voices(flash);
+
     for (int level = 31; level >= 17; level--)
     {
         sgtl5000.lineOutLevel(level);
 
         delay(25);
-    }
 
-    waveForm.frequency(440);
-    waveForm.begin(WAVEFORM_SINE);
-    waveForm.amplitude(1.0f);
+        flash = flash == 0 ? 8 : 0;
+
+        indicators.voices(flash);
+    }
 
     myusb.begin();
 
@@ -79,6 +91,7 @@ void setup()
     usbMidi1.setHandleNoteOff(midiNoteOff);
     usbMidi1.setHandlePitchChange(midiPitchChange);
     usbMidi1.setHandleControlChange(midiControlChange);
+    usbMidi1.setHandleSystemExclusive(midiHandleSystemExclusive);
 
     configurationOrchestrator.begin();
 
@@ -126,7 +139,7 @@ inline void logAudioCPU()
 
     if ((loops++ % 3000000) == 0)
     {
-        Serial.printf("CPU Usage: %02.02f%% (Max %02.02f%%) Memory Usage: %d (Max %d)\n",
+        Serial.printf("CPU Usage: %02.02f%% (Max %02.02f%%) Memory Usage: %d% (Max %d)\n",
                       AudioProcessorUsage(),
                       AudioProcessorUsageMax(),
                       AudioMemoryUsage(),

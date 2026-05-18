@@ -20,18 +20,18 @@ enum ReadState : uint8_t
 #define MUX_SELECT1_PIN 31
 #define MUX_SELECT0_PIN 32
 
-#define DEBUG 0
+#define DEBUG 1
 
 const int MUX_COUNT = 1;
 
 class SynthConfigurationOrchestrator
 {
 public:
-    SynthConfigurationOrchestrator(ControllerIoListener *controllerListener) : mux1(INPUT_GROUP_MUX1, 16),
-                                                                               mux2(INPUT_GROUP_MUX2, 16),
-                                                                               mux3(INPUT_GROUP_MUX3, 16),
-                                                                               ioReads("IO Read Cycles"),
-                                                                               commits("IO Commits")
+    SynthConfigurationOrchestrator(ControllerIoListener *controllerListener) : _mux1(INPUT_GROUP_MUX1, 16),
+                                                                               _mux2(INPUT_GROUP_MUX2, 16),
+                                                                               _mux3(INPUT_GROUP_MUX3, 16),
+                                                                               _ioReads("IO Read Cycles"),
+                                                                               _commits("IO Commits")
     {
         _controllerListener = controllerListener;
     }
@@ -68,16 +68,16 @@ public:
             }
             break;
         case STATE_READ_MUX:
-            mux1.read(_currentInput);
-            mux2.read(_currentInput);
-            mux3.read(_currentInput);
+            _mux1.read(_currentInput);
+            _mux2.read(_currentInput);
+            _mux3.read(_currentInput);
 
             _state = STATE_SELECT_MUX;
             _currentInput = (_currentInput + 1) & 0xF;
 
             if (_currentInput == 0)
             {
-                ioReads.inc(microSeconds);
+                _ioReads.inc(microSeconds);
             }
             break;
         }
@@ -85,7 +85,7 @@ public:
         updateSynthConfiguration(microSeconds);
     }
 
-    MidiIo *midiHandler() { return &midiIo; }
+    MidiIo *midiHandler() { return &_midi; }
 
 private:
     ControllerIoListener *_controllerListener;
@@ -94,15 +94,15 @@ private:
     int _state;
     uint32_t _readTime;
     uint32_t _notifyTime;
-    MuxIo mux1;
-    MuxIo mux2;
-    MuxIo mux3;
-    MidiIo midiIo;
+    MuxIo _mux1;
+    MuxIo _mux2;
+    MuxIo _mux3;
+    MidiIo _midi;
 
-    CallCounter ioReads;
-    CallCounter commits;
+    CallCounter _ioReads;
+    CallCounter _commits;
 
-    float _debugWrite = 0;
+    uint8_t _debugWrite = 0;
 
     void updateSynthConfiguration(uint32_t microSeconds)
     {
@@ -112,25 +112,25 @@ private:
             {
                 if (++_debugWrite > 50)
                 {
-                    mux1.debug();
-                    mux2.debug();
-                    mux3.debug();
+                    _mux1.debug();
+                    _mux2.debug();
+                    _mux3.debug();
                     Serial.println();
 
                     _debugWrite = 0;
                 }
             }
 
-            mux1.commitBufferChanges(_controllerListener);
-            mux2.commitBufferChanges(_controllerListener);
-            mux3.commitBufferChanges(_controllerListener);
-            midiIo.commitBufferChanges(_controllerListener);
+            _mux1.commitBufferChanges(_controllerListener);
+            _mux2.commitBufferChanges(_controllerListener);
+            _mux3.commitBufferChanges(_controllerListener);
+            _midi.commitBufferChanges(_controllerListener);
 
             _controllerListener->commit();
 
             _notifyTime = microSeconds + 10000;
 
-            commits.inc(microSeconds);
+            _commits.inc(microSeconds);
         }
     }
 };

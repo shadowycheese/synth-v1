@@ -3,6 +3,7 @@
 
 #include <Audio.h>
 #include "Constants.h"
+#include "store/WaveformStore.h"
 
 using SynthConfigurationFlags = uint16_t;
 
@@ -92,6 +93,8 @@ class SynthConfiguration
 public:
     SynthConfiguration() {}
 
+    WaveformStore *waveformStore;
+
     // Waveform parameters
     OscillatorConfiguration oscillators[4];
     OscillatorConfiguration lfo1;
@@ -104,7 +107,6 @@ public:
     EnvelopeConfiguration lfo2Envelope;
 
     // Filter parameters
-    bool filterEnabled;
     bool lowPass;
     float filterCutoff;
     float resonance = 0;
@@ -112,6 +114,7 @@ public:
     float keyTracking = 0.0f;
 
     // Voice parameters
+    float decoherence = 0;
     float pitchBend = 0;
     bool leftSideOnly = 0;
     float noiseGain;
@@ -122,19 +125,17 @@ public:
     float ampGain = 0.5f;
 
     // Effect parameters
-    bool delayEnabled = 20;
     float reverb = 0.0f;
-    bool reverbEnabled = false;
     float delay = 0.0f;
 
     void copy(SynthConfiguration *source)
     {
+        waveformStore = source->waveformStore;
+
         voiceEnvelope.copy(&(source->voiceEnvelope));
         lfo1Envelope.copy(&(source->lfo1Envelope));
         lfo2Envelope.copy(&(source->lfo2Envelope));
 
-        delayEnabled = source->delayEnabled;
-        reverbEnabled = source->reverbEnabled;
         reverb = source->reverb;
         keyTracking = source->keyTracking;
         delay = source->delay;
@@ -142,6 +143,7 @@ public:
         lowPass = source->lowPass;
         resonance = source->resonance;
         pitchBend = source->pitchBend;
+        decoherence = source->decoherence;
 
         lfo1.copy(&(source->lfo1));
         lfo2.copy(&(source->lfo2));
@@ -149,7 +151,6 @@ public:
 
         octaveControl = source->octaveControl;
         filterCutoff = source->filterCutoff;
-        filterEnabled = source->filterEnabled;
         noiseGain = source->noiseGain;
         maxDetune = 0;
 

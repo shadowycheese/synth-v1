@@ -44,12 +44,6 @@ private:
     AudioAmplifier rightAmp;
     AudioEffectReverb reverb;
     AudioAnalyzePeak peak;
-    AudioAnalyzePeak peak1;
-    AudioAnalyzePeak peak2;
-    AudioAnalyzePeak peak3;
-    AudioAnalyzePeak peak4;
-    AudioAnalyzePeak peak5;
-
     AudioConnection patches[40] =
         {
             AudioConnection(voicePool[0].getOutput(), 0, mixer1, 0),
@@ -67,12 +61,6 @@ private:
 
             AudioConnection(masterMix, 0, reverb, 0),
 
-            AudioConnection(mixer1, 0, peak1, 0),
-            AudioConnection(mixer2, 0, peak2, 0),
-
-            AudioConnection(masterMix, 0, peak3, 0),
-            AudioConnection(reverb, 0, peak4, 0),
-
             AudioConnection(masterMix, 0, left, 0),
             AudioConnection(masterMix, 0, right, 0),
 
@@ -80,10 +68,10 @@ private:
             AudioConnection(reverb, 0, right, 1),
 
             AudioConnection(left, 0, leftAmp, 0),
-            AudioConnection(right, 0, rightAmp, 0), //
-            AudioConnection(left, 0, peak5, 0),
+            AudioConnection(right, 0, rightAmp, 0),
 
-            AudioConnection(leftAmp, 0, peak, 0)};
+            AudioConnection(leftAmp, 0, peak, 0), //
+        };
 
     byte _notesVoiceMap[256];
 

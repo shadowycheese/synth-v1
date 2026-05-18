@@ -20,16 +20,14 @@ public:
     void noteOn(byte note, float frequency, float velocity);
     void noteOff();
 
-    AudioStream &getOutput() { return envelopeVoice; }
+    AudioStream &getOutput() { return delayMixer; }
 
-    float volume();
     bool isPlaying();
     uint32_t timestamp() { return _timestamp; };
     byte noteLastPlayed() { return _note; };
 
     void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags);
     void updateFilter();
-    void task(bool print);
 
 private:
     AudioMixer4 oscillatorMixer1;
@@ -42,22 +40,19 @@ private:
     AudioSynthWaveform lfo1c;
     AudioSynthWaveform lfo2;
 
-    AudioSynthWaveformDc filterLevel;
     AudioSynthWaveformModulated oscillators[7];
     AudioSynthWaveformDc pulseWidths[4];
     AudioEffectMultiply modMultiply;
     AudioSynthNoisePink noise;
     AudioFilterStateVariable filter;
+    AudioEffectDelay delay;
+    AudioMixer4 delayMixer;
+
     AudioEffectEnvelope envelopeVoice;
     AudioEffectEnvelope envelopeLfo1a;
     AudioEffectEnvelope envelopeLfo1b;
     AudioEffectEnvelope envelopeLfo1c;
     AudioEffectEnvelope envelopeLfo2;
-    AudioAnalyzePeak mixer1Analyze;
-    AudioAnalyzePeak mixer2Analyze;
-    AudioAnalyzePeak mainMixerAnalyze;
-    AudioAnalyzePeak filterAnalyze;
-    AudioEffectRectifier filterRectifier;
 
     AudioMixer4 filterMixer;
 
@@ -103,11 +98,9 @@ private:
             AudioConnection(oscillatorMixerMain, 0, filterMixer, 2),
 
             AudioConnection(filterMixer, 0, envelopeVoice, 0),
-
-            AudioConnection(oscillatorMixer1, 0, mixer1Analyze, 0),
-            AudioConnection(oscillatorMixer2, 0, mixer2Analyze, 0),
-            AudioConnection(oscillatorMixerMain, 0, mainMixerAnalyze, 0),
-            AudioConnection(filterMixer, 0, filterAnalyze, 0),
+            AudioConnection(envelopeVoice, 0, delay, 0),
+            AudioConnection(envelopeVoice, 0, delayMixer, 0),
+            AudioConnection(delay, 0, delayMixer, 1),
         };
 
     VoiceConfiguration _voiceConfiguration;
@@ -117,7 +110,6 @@ private:
     float _frequency;
     float _gain;
     uint32_t _iteration;
-    float peak1, peak2, peak3, peak4;
 
     void init();
     void configureVoice();
@@ -125,7 +117,9 @@ private:
     void configureFilter();
     void configureEffects();
     void configureOscilators();
-    inline void configureLfo(AudioSynthWaveform *lfo, OscillatorConfiguration *config, float frequency);
+    void configuraOscillator(AudioSynthWaveformModulated *wf, OscillatorConfiguration *config);
+    void configuraOscillator(AudioSynthWaveform *wf, OscillatorConfiguration *config);
+    inline void configureLfo(AudioSynthWaveform *lfo, OscillatorConfiguration *config, float frequency, float phase);
     inline void configureUniPolarLfo(AudioSynthWaveform *lfo, OscillatorConfiguration *config, float frequency);
     inline void configureEnvelope(AudioEffectEnvelope *envelope, EnvelopeConfiguration *config);
 };

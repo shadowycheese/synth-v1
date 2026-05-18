@@ -10,13 +10,13 @@ public:
     {
         for (int i = 0; i < BUFFER_SIZE; i++)
         {
-            values[i] = 0;
+            _values[i] = 0;
         }
     }
 
     int read(int newVal)
     {
-        values[pos++] = newVal;
+        _values[pos++] = newVal;
 
         pos = pos % BUFFER_SIZE;
 
@@ -29,7 +29,7 @@ public:
 
         for (int i = 0; i < BUFFER_SIZE; i++)
         {
-            value += values[i];
+            value += _values[i];
         }
 
         value /= BUFFER_SIZE;
@@ -38,7 +38,7 @@ public:
     }
 
 private:
-    int values[BUFFER_SIZE];
+    int _values[BUFFER_SIZE];
     int pos = 0;
 };
 

@@ -1,6 +1,8 @@
 #ifndef VOICECONFIGURATION_H
 #define VOICECONFIGURATION_H
 
+const int CUSTOM_WAVEFORM_OFFSET = 6;
+
 class VoiceConfiguration : public SynthConfiguration
 {
 public:
@@ -19,22 +21,30 @@ public:
         return WaveFormMap[lfo2.waveform];
     }
 
-    static constexpr int WaveFormMap[8] = {
+    static constexpr int WaveFormMap[10] = {
         WAVEFORM_SINE,
         WAVEFORM_PULSE,
         WAVEFORM_TRIANGLE,
         WAVEFORM_SAWTOOTH,
         WAVEFORM_SAWTOOTH_REVERSE,
-        WAVEFORM_SAMPLE_HOLD //
+        WAVEFORM_SAMPLE_HOLD,
+        WAVEFORM_ARBITRARY,
+        WAVEFORM_ARBITRARY,
+        WAVEFORM_ARBITRARY,
+        WAVEFORM_ARBITRARY //
     };
 
-    static constexpr char *WaveFormNames[8] = {
+    static constexpr char *WaveFormNames[10] = {
         "Sine",
         "Square",
         "Triangle",
         "Saw",
         "Reverse Saw",
-        "Sample & Hold" //
+        "Sample & Hold",
+        "Custom 1",
+        "Custom 2",
+        "Custom 3",
+        "Custom 4", //
     };
 
     static constexpr float CENTS[4] = {
