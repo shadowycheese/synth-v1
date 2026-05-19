@@ -1,7 +1,7 @@
 #include "VoiceController.h"
 
-VoiceController::VoiceController(Indicators *inidicators) : voiceUpdates("Voice Updates"),
-                                                            filterUpdates("Filter Updates")
+VoiceController::VoiceController(Indicators *inidicators, WaveformStore *waveformStore) : voiceUpdates("Voice Updates"),
+                                                                                          filterUpdates("Filter Updates")
 {
     for (int i = 0; i < 4; i++)
     {
@@ -18,6 +18,11 @@ VoiceController::VoiceController(Indicators *inidicators) : voiceUpdates("Voice 
     _indicators = inidicators;
 
     nextVoiceUpdateTime = millis();
+
+    for (int i = 0; i < 8; i++)
+    {
+        voicePool[i].setWaveformStore(waveformStore);
+    }
 }
 
 void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)

@@ -17,59 +17,59 @@ class MuxIo
 public:
     MuxIo(int id, int activePinCount)
     {
-        muxId = id;
-        activePins = activePinCount;
-        inputPin = muxId == 1
-                       ? MUX1_READ_PIN
-                   : muxId == 2
-                       ? MUX2_READ_PIN
-                       : MUX3_READ_PIN;
+        _muxId = id;
+        _activePins = activePinCount;
+        _inputPin = _muxId == 1
+                        ? MUX1_READ_PIN
+                    : _muxId == 2
+                        ? MUX2_READ_PIN
+                        : MUX3_READ_PIN;
 
         for (int i = 0; i < 16; i++)
         {
-            commitValues[i] = -1;
+            _commitValues[i] = -1;
         }
     }
 
     void read(int input)
     {
-        if (input >= activePins)
+        if (input >= _activePins)
         {
             return;
         }
 
-        analogRead(inputPin);
+        analogRead(_inputPin);
 
-        int rawValue = analogRead(inputPin);
+        int rawValue = analogRead(_inputPin);
 
         if (INVERTED)
         {
             rawValue = 1023 - rawValue;
         }
 
-        int oldValue = currentValues[input].value();
-        int value = currentValues[input].read(rawValue);
+        int oldValue = _currentValues[input].value();
+        int value = _currentValues[input].read(rawValue);
 
         if (oldValue != value)
         {
-            bufferValues[input] = value;
+            _bufferValues[input] = value;
 
-            bufferChanged = true;
+            _bufferChanged = true;
         }
     }
 
     void debug()
     {
-        Serial.printf("%d:", muxId);
+        Serial.printf("%d:", _muxId);
 
-        for (int i = 0; i < activePins; i++)
+        for (int i = 0; i < _activePins; i++)
         {
             if ((i % 4) == 0)
             {
                 Serial.print(" ");
             }
 
-            Serial.printf("%01X", bufferValues[i] >> 6);
+            Serial.printf("%01X", _bufferValues[i] >> 6);
         }
 
         Serial.print("  ");
@@ -77,27 +77,27 @@ public:
 
     void commitBufferChanges(ControllerIoListener *ioListener)
     {
-        for (int i = 0; i < activePins; i++)
+        for (int i = 0; i < _activePins; i++)
         {
-            int smoothedValue = (bufferValues[i] + commitValues[i]) / 2;
+            int smoothedValue = (_bufferValues[i] + _commitValues[i]) / 2;
 
-            if (debounce(smoothedValue, commitValues[i], DEBOUNCE_DISTANCE))
+            if (debounce(smoothedValue, _commitValues[i], DEBOUNCE_DISTANCE))
             {
-                commitValues[i] = smoothedValue;
+                _commitValues[i] = smoothedValue;
 
-                ioListener->onControllerIoChanged(muxId, i, smoothedValue);
+                ioListener->onControllerIoChanged(_muxId, i, smoothedValue);
             }
         }
     }
 
 private:
-    int activePins;
-    int muxId;
-    int inputPin;
-    AnalogBuffer currentValues[16];
-    int bufferValues[16];
-    int commitValues[16];
-    bool bufferChanged;
+    int _activePins;
+    int _muxId;
+    int _inputPin;
+    AnalogBuffer _currentValues[16];
+    int _bufferValues[16];
+    int _commitValues[16];
+    bool _bufferChanged;
 
     bool debounce(int value1, int value2, int minDiff)
     {

@@ -44,10 +44,27 @@ public:
             digitalWriteFast(PIN_LED_OVERDRIVE, HIGH);
 
             _targetLevel = 0.0f;
-            _targetAdjTime = microSeconds;
+            _nonNoteTime = microSeconds;
         }
 
         write595(0);
+    }
+
+    void waveformUploaded(uint32_t microSeconds, uint8_t waveform)
+    {
+        _wfUploadFlash = 11;
+        _wfUploadId = _wfLedValues[(waveform % 6) & 0x3F];
+        _nonNoteTime = microSeconds + 100000;
+
+        write595(_wfUploadId);
+    }
+
+    void waveformSelected(uint32_t microSeconds, uint8_t waveform)
+    {
+        write595(_wfLedValues[waveform % 12]);
+
+        _wfSelection = true;
+        _nonNoteTime = microSeconds + 1000000;
     }
 
     void overdrive(uint32_t microSeconds)
@@ -77,16 +94,36 @@ public:
     {
         if (!_kbConnected)
         {
-            if (microSeconds > _targetAdjTime)
+            if (microSeconds > _nonNoteTime)
             {
                 write595(_kbLedValues[_kbLeds]);
 
                 _kbLeds = (_kbLeds + 1) % 14;
 
-                _targetAdjTime = microSeconds + 150000;
+                _nonNoteTime = microSeconds + 150000;
             }
 
             return;
+        }
+        else if (_wfUploadFlash > 0)
+        {
+            if (microSeconds > _nonNoteTime)
+            {
+                _wfUploadFlash--;
+
+                _nonNoteTime = microSeconds + 100000;
+
+                write595(_wfUploadFlash % 2 ? _wfUploadId : 0);
+            }
+        }
+        else if (_wfSelection)
+        {
+            if (microSeconds > _nonNoteTime)
+            {
+                _wfSelection = false;
+
+                write595(_voiceLedValues[_voiceCount]);
+            }
         }
 
         if (_active && microSeconds > _timeOff)
@@ -127,7 +164,11 @@ private:
     uint8_t _voiceCount;
     uint8_t _level;
     uint8_t _targetLevel;
+    uint32_t _nonNoteTime;
     bool _kbConnected;
+    bool _wfSelection;
+    uint8_t _wfUploadFlash;
+    uint8_t _wfUploadId;
     uint8_t _kbLeds;
 
     void write595(uint8_t value)
@@ -136,6 +177,8 @@ private:
         shiftOut(PIN_LED_595_DATA, PIN_LED_595_CLOCK, MSBFIRST, value);
         digitalWriteFast(PIN_LED_595_LATCH, HIGH);
     }
+
+    static constexpr uint8_t _wfLedValues[12] = {132, 130, 129, 136, 160, 144, 196, 194, 193, 200, 224, 208};
 
     static constexpr uint8_t _kbLedValues[14] = {4, 2, 1, 8, 32, 16, 64, 128, 64, 16, 32, 8, 1, 2};
 

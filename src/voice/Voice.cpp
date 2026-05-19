@@ -1,24 +1,6 @@
 #include "../Constants.h"
 #include "Voice.h"
 
-const int16_t organWaveform[256] = {
-    0, 1184, 2337, 3426, 4423, 5304, 6046, 6634, 7058, 7315, 7409, 7349, 7150, 6834, 6425, 5952,
-    5444, 4935, 4453, 4026, 3676, 3418, 3261, 3209, 3256, 3390, 3594, 3850, 4136, 4429, 4706, 4945,
-    5126, 5233, 5250, 5169, 4984, 4694, 4301, 3814, 3244, 2608, 1923, 1210, 492, -210, -880, -1502,
-    -2060, -2544, -2944, -3255, -3474, -3602, -3642, -3601, -3489, -3317, -3102, -2858, -2602, -2354, -2129, -1942,
-    -1804, -1725, -1708, -1758, -1872, -2046, -2270, -2533, -2818, -3111, -3395, -3656, -3878, -4049, -4157, -4194,
-    -4155, -4042, -3858, -3612, -3311, -2970, -2601, -2220, -1844, -1487, -1164, -886, -665, -509, -422, -406,
-    -457, -572, -745, -967, -1228, -1516, -1818, -2122, -2416, -2687, -2925, -3119, -3260, -3342, -3360, -3311,
-    -3197, -3019, -2782, -2492, -2158, -1790, -1400, -1000, -603, -220, 137, 460, 741, 976, 1159, 1289,
-    1362, 1379, 1341, 1251, 1114, 936, 725, 488, 237, -17, -264, -494, -695, -861, -984, -1059,
-    -1083, -1055, -977, -852, -686, -485, -259, -19, 226, 463, 683, 876, 1032, 1145, 1209, 1219,
-    1174, 1076, 929, 739, 513, 260, -10, -284, -548, -791, -1004, -1181, -1313, -1396, -1425, -1401,
-    -1323, -1195, -1021, -806, -559, -290, -9, 275, 550, 810, 1046, 1250, 1414, 1533, 1602, 1618,
-    1578, 1484, 1338, 1146, 915, 654, 372, 80, -210, -488, -744, -970, -1158, -1302, -1398, -1443,
-    -1436, -1379, -1272, -1120, -929, -706, -458, -196, 73, 340, 598, 836, 1046, 1222, 1354, 1440,
-    1474, 1455, 1381, 1254, 1077, 856, 597, 310, 4, -307, -612, -901, -1164, -1394, -1582, -1723,
-    -1811, -1842, -1813, -1723, -1574, -1369, -1113, -812, -474, -110, 271, 660, 1046, 1419, 1768, 2084};
-
 void Voice::init()
 {
     for (int i = 0; i < 4; i++)
@@ -35,7 +17,6 @@ void Voice::init()
     {
         oscillators[i].phaseModulation(180);
         oscillators[i].amplitude(1.0f);
-        oscillators[i].arbitraryWaveform(organWaveform, 0);
     }
 
     noise.amplitude(1.0f);
@@ -343,7 +324,7 @@ void Voice::configuraOscillator(AudioSynthWaveformModulated *wf, OscillatorConfi
     if (config->waveform >= CUSTOM_WAVEFORM_OFFSET)
     {
         uint8_t wfId = config->waveform - CUSTOM_WAVEFORM_OFFSET;
-        int16_t *wfData = _voiceConfiguration.waveformStore->waveformData(wfId);
+        int16_t *wfData = _waveformStore->waveformData(wfId);
 
         wf->arbitraryWaveform(wfData, 0.0f);
     }
@@ -356,7 +337,7 @@ void Voice::configuraOscillator(AudioSynthWaveform *wf, OscillatorConfiguration 
     if (config->waveform >= CUSTOM_WAVEFORM_OFFSET)
     {
         uint8_t wfId = config->waveform - CUSTOM_WAVEFORM_OFFSET;
-        int16_t *wfData = _voiceConfiguration.waveformStore->waveformData(wfId);
+        int16_t *wfData = _waveformStore->waveformData(wfId);
 
         wf->arbitraryWaveform(wfData, 0.0f);
     }

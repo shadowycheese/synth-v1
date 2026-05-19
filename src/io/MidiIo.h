@@ -22,7 +22,7 @@ public:
     {
         for (int i = 0; i < MIDI_INPUT_COUNT; i++)
         {
-            commitValues[i] = -1;
+            _commitValues[i] = -1;
         }
     }
 
@@ -57,36 +57,36 @@ public:
 
     void commitBufferChanges(ControllerIoListener *ioListener)
     {
-        if (!bufferChanged)
+        if (!_bufferChanged)
         {
             return;
         }
 
         for (int i = 0; i < MIDI_INPUT_COUNT; i++)
         {
-            if (bufferValues[i] != commitValues[i])
+            if (_bufferValues[i] != _commitValues[i])
             {
-                commitValues[i] = bufferValues[i];
+                _commitValues[i] = _bufferValues[i];
 
-                Serial.printf("%d => %d\n", i, commitValues[i]);
+                Serial.printf("%d => %d\n", i, _commitValues[i]);
 
-                ioListener->onControllerIoChanged(INPUT_GROUP_MIDI, i, commitValues[i]);
+                ioListener->onControllerIoChanged(INPUT_GROUP_MIDI, i, _commitValues[i]);
             }
         }
 
-        bufferChanged = false;
+        _bufferChanged = false;
     }
 
 private:
-    int bufferValues[MIDI_INPUT_COUNT];
-    int commitValues[MIDI_INPUT_COUNT];
-    bool bufferChanged;
+    int _bufferValues[MIDI_INPUT_COUNT];
+    int _commitValues[MIDI_INPUT_COUNT];
+    bool _bufferChanged;
 
     void update(int input, int value)
     {
-        bufferValues[input] = value;
+        _bufferValues[input] = value;
 
-        bufferChanged = true;
+        _bufferChanged = true;
     }
 };
 

@@ -11,12 +11,12 @@
 class SynthConfigurationMapper : public ControllerIoListener
 {
 public:
-    SynthConfigurationMapper(SynthConfiguration *configuration, SynthConfigurationListener *configuratonListener, WaveformStore *wfStore)
+    SynthConfigurationMapper(SynthConfiguration *configuration, SynthConfigurationListener *configuratonListener, Indicators *indicators)
     {
         _synthConfiguration = configuration;
         _synthConfigurationListener = configuratonListener;
 
-        _localSynthConfiguration.waveformStore = wfStore;
+        _indicators = indicators;
     }
 
     void commit()
@@ -35,8 +35,8 @@ public:
     {
         Func handler = getIoHandler(group, input);
 
-        currentInput = input;
-        currentGroup = group;
+        _currentInput = input;
+        _currentGroup = group;
 
         _changeFlags |= (this->*handler)(value);
     }
@@ -44,8 +44,9 @@ public:
 private:
     typedef int (SynthConfigurationMapper::*Func)(int);
 
-    int currentInput;
-    int currentGroup;
+    int _currentInput;
+    int _currentGroup;
+    Indicators *_indicators;
 
     Func midiInputs[7] = {
         &SynthConfigurationMapper::updatePitchBend,
@@ -57,8 +58,8 @@ private:
         &SynthConfigurationMapper::noOp};
 
     Func mux1Inputs[16] = {
-        &SynthConfigurationMapper::noOp,
-        &SynthConfigurationMapper::noOp,
+        &SynthConfigurationMapper::updatePreset1,
+        &SynthConfigurationMapper::updatePreset2,
         &SynthConfigurationMapper::updateFilterType,
         &SynthConfigurationMapper::updateHalfSaw,
         &SynthConfigurationMapper::updateLfo1Release,
@@ -441,6 +442,38 @@ private:
         return 0;
     }
 
+    int updatePreset1(int value)
+    {
+        bool newValue = value < 512 ? true : false;
+
+        if (newValue != _localSynthConfiguration.preset1)
+        {
+            Serial.printf("Preset 1 changed = %s\n", newValue ? "true" : "false");
+
+            _localSynthConfiguration.preset1 = newValue;
+
+            return PRESET_CHANGED;
+        }
+
+        return 0;
+    }
+
+    int updatePreset2(int value)
+    {
+        bool newValue = value < 512 ? true : false;
+
+        if (newValue != _localSynthConfiguration.preset2)
+        {
+            Serial.printf("Preset 2 changed = %s\n", newValue ? "true" : "false");
+
+            _localSynthConfiguration.preset2 = newValue;
+
+            return PRESET_CHANGED;
+        }
+
+        return 0;
+    }
+
     int updateHalfSaw(int value)
     {
         bool newValue = value < 512 ? true : false;
@@ -658,13 +691,15 @@ private:
 
     int updateOscillatorWaveform(OscillatorConfiguration *oscillator, const char *name, int changeFlag, int value)
     {
-        int newValue = (value / 143) % 7;
+        int newValue = (value / 86) % 12;
 
         if (newValue != oscillator->waveform)
         {
             Serial.printf("%s waveform %d [%s]\n", name, newValue, VoiceConfiguration::WaveFormNames[newValue]);
 
             oscillator->waveform = newValue;
+
+            _indicators->waveformSelected(micros(), newValue);
 
             return changeFlag;
         }

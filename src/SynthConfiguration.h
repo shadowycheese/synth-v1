@@ -14,6 +14,11 @@ static constexpr SynthConfigurationFlags VOLUME_CHANGED = 0x0008;
 static constexpr SynthConfigurationFlags VOICE_CHANGED = 0x0010;
 static constexpr SynthConfigurationFlags EFFECT_CHANGED = 0x0020;
 static constexpr SynthConfigurationFlags LFO_CHANGED = 0x0040;
+static constexpr SynthConfigurationFlags PRESET_CHANGED = 0x0080;
+
+static constexpr SynthConfigurationFlags ALL_CHANGED = 0x00FF;
+
+static constexpr uint32_t MAGIC_CODE = 0x05C1FADE;
 
 inline bool waveformChanged(SynthConfigurationFlags flags)
 {
@@ -48,6 +53,11 @@ inline bool effectChanged(SynthConfigurationFlags flags)
 inline bool lfoChanged(SynthConfigurationFlags flags)
 {
     return flags & LFO_CHANGED;
+}
+
+inline bool presetChanged(SynthConfigurationFlags flags)
+{
+    return flags & PRESET_CHANGED;
 }
 
 class OscillatorConfiguration
@@ -91,9 +101,7 @@ public:
 class SynthConfiguration
 {
 public:
-    SynthConfiguration() {}
-
-    WaveformStore *waveformStore;
+    const uint32_t magicNumber = MAGIC_CODE;
 
     // Waveform parameters
     OscillatorConfiguration oscillators[4];
@@ -128,10 +136,11 @@ public:
     float reverb = 0.0f;
     float delay = 0.0f;
 
+    bool preset1 = false;
+    bool preset2 = false;
+
     void copy(SynthConfiguration *source)
     {
-        waveformStore = source->waveformStore;
-
         voiceEnvelope.copy(&(source->voiceEnvelope));
         lfo1Envelope.copy(&(source->lfo1Envelope));
         lfo2Envelope.copy(&(source->lfo2Envelope));
@@ -144,6 +153,8 @@ public:
         resonance = source->resonance;
         pitchBend = source->pitchBend;
         decoherence = source->decoherence;
+        preset1 = source->preset1;
+        preset2 = source->preset2;
 
         lfo1.copy(&(source->lfo1));
         lfo2.copy(&(source->lfo2));

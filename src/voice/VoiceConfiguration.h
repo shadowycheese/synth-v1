@@ -21,7 +21,7 @@ public:
         return WaveFormMap[lfo2.waveform];
     }
 
-    static constexpr int WaveFormMap[10] = {
+    static constexpr int WaveFormMap[12] = {
         WAVEFORM_SINE,
         WAVEFORM_PULSE,
         WAVEFORM_TRIANGLE,
@@ -31,10 +31,12 @@ public:
         WAVEFORM_ARBITRARY,
         WAVEFORM_ARBITRARY,
         WAVEFORM_ARBITRARY,
+        WAVEFORM_ARBITRARY,
+        WAVEFORM_ARBITRARY,
         WAVEFORM_ARBITRARY //
     };
 
-    static constexpr char *WaveFormNames[10] = {
+    static constexpr char *WaveFormNames[12] = {
         "Sine",
         "Square",
         "Triangle",
@@ -44,7 +46,9 @@ public:
         "Custom 1",
         "Custom 2",
         "Custom 3",
-        "Custom 4", //
+        "Custom 4",
+        "Custom 5",
+        "Custom 6", //
     };
 
     static constexpr float CENTS[4] = {

@@ -28,6 +28,7 @@ public:
 
     void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags);
     void updateFilter();
+    void setWaveformStore(WaveformStore *waveformStore) { _waveformStore = waveformStore; }
 
 private:
     AudioMixer4 oscillatorMixer1;
@@ -104,6 +105,7 @@ private:
         };
 
     VoiceConfiguration _voiceConfiguration;
+    WaveformStore *_waveformStore;
 
     uint32_t _timestamp;
     byte _note;

@@ -3,7 +3,6 @@
 # Exit immediately if a command fails
 set -e
 
-# --- Configuration ---
 # System Exclusive (SysEx) headers. 
 # 0xF0 is the mandatory start byte. 0xF7 is the mandatory end byte.
 # Adjust the manufacturer ID bytes (e.g., 7E 7F) to match your hardware specs.
@@ -12,59 +11,15 @@ SYS_START_2=0x7E
 SYS_START_3=0x7F
 SYS_END=0xF7
 
-# --- Validation ---
-if [ "$#" -ne 2 ]; then
-    echo "Error: Missing arguments." >&2
-    echo "Usage: $0 <wave_id (0-5)> <wav_file>" >&2
-    exit 1
-fi
-
-WAVE_ID="$1"
-WAV_FILE="$2"
-
-# Validate Wave ID range
-if [[ ! "$WAVE_ID" =~ ^[0-5]$ ]]; then
-    echo "Error: Wave ID must be an integer between 0 and 5." >&2
-    exit 1
-fi
-
-# Verify file existence
-if [ ! -f "$WAV_FILE" ]; then
-    echo "Error: File '$WAV_FILE' not found." >&2
-    exit 1
-fi
-
-# Verify strict file size (must be exactly 556 bytes)
-FILE_SIZE=$(wc -c < "$WAV_FILE")
-if [ "$FILE_SIZE" -ne 556 ]; then
-    echo "Error: File size is $FILE_SIZE bytes. Expected exactly 556 bytes." >&2
-    exit 1
-fi
-
-# --- Processing ---
-# Convert the Wave ID to a 2-digit uppercase hex string
-HEX_WAVE_ID=$(printf "%02X" "$WAVE_ID")
-
-# Extract the 512 data bytes starting at byte 44 (skip 44 bytes of headers)
-# xxd formats it into a continuous, uppercase hex string
-HEX_DATA=$(tail -c +45 "$WAV_FILE" | xxd -p | tr -d '\n' | tr '[:lower:]' '[:upper:]')
-
-# Verify the extracted data payload length (512 bytes = 1024 hex characters)
-if [ "${#HEX_DATA}" -ne 1024 ]; then
-    echo "Error: Failed to extract exactly 512 bytes of data." >&2
-    exit 1
-fi
-
-MIDI_PORT=$(amidi -l | awk '/hw:/ {print $2; exit}')
-
-if [ -z "$MIDI_PORT" ]; then
-    echo "Error: No active USB MIDI devices found via 'amidi -l'." >&2
-    rm -f "$TMP_BIN"
-    exit 1
-fi
+WAVE_ID=
+WAV_FILE=
+HEX_FILE=
+BIN_FILE=
+WAV_TYPE=
+HEX_DATA=
 
 function upload_chunk() {
-    echo "Sending Wave ID $WAVE_ID ($WAV_FILE) chunk $1 via MIDI port: $MIDI_PORT"
+    print "Sending Wave ID $WAVE_ID ($WAV_FILE) chunk $1 via MIDI port: $MIDI_PORT..."
     TMP_BIN=$(mktemp)
 
     printf "\\x$(printf %02X $SYS_START_1)\\x$(printf %02X $SYS_START_2)\\x$(printf %02X $SYS_START_3)" > "$TMP_BIN"
@@ -74,15 +29,168 @@ function upload_chunk() {
     printf "\\x$(printf %02X $SYS_END)" >> "$TMP_BIN"
 
     if amidi -p $MIDI_PORT -s $TMP_BIN; then
-        echo "Transmission successful!"
+        print "COMPLETE\n"
         rm -f "$TMP_BIN"
     else
-        echo "Error: amidi transmission failed." >&2
+        print "FAILED\n"
+        echo "Error:" >&2
+        echo "  amidi transmission failed." >&2
         rm -f "$TMP_BIN"
         exit 1
     fi
 }
 
+function validate_wave_type() {
+    if [[ "$WAVE_TYPE" == "" ]]; then
+        echo "Error:" >&2
+        echo "  Must specify a hex string or a wav type." >&2
+        exit 1
+    fi
+}
+
+function validate_wave_id() {
+    if [[ ! "$WAVE_ID" =~ ^[0-5]$ ]]; then
+        echo "Error:" >&2
+        echo "  Wave ID must be an integer between 0 and 5." >&2
+        exit 1
+    fi
+
+    HEX_WAVE_ID=$(printf "%02X" "$WAVE_ID")
+}
+
+function validate_hex_string() {
+    hex_size=${#HEX_DATA}
+    if [ "$hex_size" -ne 1024 ]; then
+        echo "Error:" >&2
+        echo "  Hex data must contain exactly 1024 hex digits" >&2
+        printf "  $*" >&2
+        exit 1
+    fi      
+
+    if [[ ! "$string" =~ ^[0-9a-fA-F]+$ ]]; then
+        echo "Error:" >&2
+        printf "  $*" >&2
+        echo "  Hex data must match [0-9a-fA-F]" >&2
+        exit 1
+    fi
+}
+
+function validate_wav_file() {
+    if [ ! -f "$WAV_FILE" ]; then
+        echo "Error:" >&2
+        echo "  File '$WAV_FILE' not found." >&2
+        exit 1
+    fi      
+
+    file_size=$(wc -c < "$WAV_FILE")
+
+    # Verify strict file size (must be exactly 556 bytes - i.e. wav headers + 256 signed ints)
+    if [ "$file_size" -ne 556 ]; then
+        echo "Error:" >&2
+        echo "  File size is $file_size bytes. Expected exactly 556 bytes. " >&2
+        echo "  Ensure the .wav file is a single frame consisting of 256 16 signed bit integers" >&2
+        exit 1
+    fi
+
+    HEX_DATA=$(tail -c +45 "$WAV_FILE" | xxd -p | tr -d '\n' | tr '[:lower:]' '[:upper:]')
+
+    error_msg="(read from .wav file $WAV_FILE)\n"
+
+    validate_hex_string
+}
+
+function validate_hex_file() {
+    if [ ! -f "$HEX_FILE" ]; then
+        echo "Error:" >&2
+        echo "  File '$HEX_FILE' not found." >&2
+        exit 1
+    fi      
+
+    # File size must be > 1024 bytes as the min number of hex digits
+    HEX_DATA=$(cat "$HEX_FILE" | tr -d '[:space:]')
+
+    error_msg="(read from HEX file $HEX_FILE)\n"
+
+    validate_hex_string $error_msg
+}
+
+function validate_bin_file() {
+    if [ ! -f "$BIN_FILE" ]; then
+        echo "Error:" >&2
+        echo "  File '$BIN_FILE' not found." >&2
+        exit 1
+    fi      
+
+    # File size must be > 1024 bytes as the min number of hex digits
+    HEX_DATA=$(cat "$BIN_FILE" | xxd -p | tr -d '\n' | tr '[:lower:]' '[:upper:]')
+
+    error_msg="(read from binary file $BIN_FILE)\n"
+
+    validate_hex_string $error_msg
+}
+
+if [ "$1" == "" ]; then
+    echo "Usage:"
+    echo '  send-wave <arguments>'
+    echo 
+    echo "  -t <waveform_id> The waveform storage location (0-5)"
+    echo "  -s <hex_string>  The waveform in HEX. Must be exactly 1024 characters"
+    echo "  -w <wav_file>    A .wav file containing exactly 256 16 bit signed values"
+    echo "  -h <hex_file>    A file containing 1024 hex characters (whitepsace is allowed)"
+    echo "  -b <bin_file>    A binary file containing exactly 256 16 bit signed values"
+    exit 0
+fi
+
+# Parse params
+while [[ $# > 0 ]] ; do
+  case "$1" in
+    -t)
+      WAVE_ID=$2
+      shift
+      ;;
+    -w)
+      WAV_FILE=$2
+      WAV_TYPE=WAV_FILE
+      shift
+      ;;
+    -s)
+      HEX_DATA=$2
+      WAV_TYPE=HEX_FILE
+      shift
+      ;;
+    -s)
+      HEX_DATA=$2
+      WAV_TYPE=HEX_DATA
+      shift
+      ;;
+    -b)
+      BIN_FILE=$2
+      WAV_TYPE=BIN_FILE
+      shift
+      ;;
+  esac
+  shift
+done
+
+validate_wave_id
+
+if [ "$WAV_TYPE" == 'WAV_FILE' ]; then
+    validate_wav_file 
+else if [ "$WAV_TYPE" == 'HEX_FILE' ]; then
+    validate_hex_file 
+else if [ "$WAV_TYPE" == 'BIN_FILE' ]; then
+    validate_bin_file 
+else if [ "$WAV_TYPE" == 'HEX_DATA' ]; then
+    validate_hex_string
+fi fi fi fi
+
+MIDI_PORT=$(amidi -l | grep -i Teensy | awk '/hw:/ {print $2; exit}')
+
+if [ -z "$MIDI_PORT" ]; then    
+    echo "Error:" >&2
+    echo "  No active USB MIDI devices found via 'amidi -l'." >&2
+    exit 1
+fi
 
 upload_chunk 0 "${HEX_DATA:0:256}"
 upload_chunk 1 "${HEX_DATA:256:256}"

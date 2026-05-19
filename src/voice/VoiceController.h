@@ -12,7 +12,7 @@
 class VoiceController : public SynthConfigurationListener
 {
 public:
-    VoiceController(Indicators *indicators);
+    VoiceController(Indicators *indicators, WaveformStore *waveformStore);
 
     AudioStream &getLeft() { return leftAmp; }
     AudioStream &getRight() { return rightAmp; }
@@ -82,7 +82,7 @@ private:
     uint32_t _nextFilterUpdateTime;
 
     // Voice updating
-    SynthConfiguration _voiceConfiguration;
+    VoiceConfiguration _voiceConfiguration;
     int _voiceConfigurationVersion;
     uint32_t nextVoiceUpdateTime;
     int _nextVoiceToUpdate;

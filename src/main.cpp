@@ -7,18 +7,21 @@
 #include "io/SynthConfigurationOrchestrator.h"
 #include "io/SynthConfigurationMapper.h"
 #include "store/WaveformStore.h"
+#include "store/PresetStore.h"
 
 AudioOutputI2S i2s1;
 AudioControlSGTL5000 sgtl5000;
 
 Indicators indicators;
 
-VoiceController voiceController(&indicators);
+WaveformStore waveformStore(&indicators);
 
-WaveformStore waveformStore;
+VoiceController voiceController(&indicators, &waveformStore);
+
+PresetStore presetStore(&voiceController);
 
 SynthConfiguration synthConfiguration;
-SynthConfigurationMapper configurationMapper(&synthConfiguration, &voiceController, &waveformStore);
+SynthConfigurationMapper configurationMapper(&synthConfiguration, &presetStore, &indicators);
 
 SynthConfigurationOrchestrator configurationOrchestrator(&configurationMapper);
 
@@ -29,13 +32,64 @@ MIDIDevice usbMidi1(myusb);
 AudioConnection leftPatch(voiceController.getLeft(), 0, i2s1, 0);
 AudioConnection rightPatch(voiceController.getRight(), 0, i2s1, 1);
 
+uint8_t storePreset;
+
+void checkStorePreset(byte note, bool on)
+{
+    if (on)
+    {
+        switch (note)
+        {
+        case 0x24:
+            storePreset |= 1;
+            break;
+        case 0x25:
+            storePreset |= 2;
+            break;
+        case 0x5F:
+            storePreset |= 4;
+            break;
+        case 0x60:
+            storePreset |= 8;
+            break;
+        }
+    }
+    else
+    {
+        switch (note)
+        {
+        case 0x24:
+            storePreset &= 0x0E;
+            break;
+        case 0x25:
+            storePreset &= 0x0D;
+            break;
+        case 0x5F:
+            storePreset &= 0x0B;
+            break;
+        case 0x60:
+            storePreset &= 0x07;
+            break;
+        }
+    }
+
+    if (storePreset == 0xF)
+    {
+        presetStore.storePreset();
+    }
+}
+
 void midiNoteOn(byte channel, byte note, byte velocity)
 {
+    checkStorePreset(note, true);
+
     voiceController.noteOn(note, velocity);
 }
 
 void midiNoteOff(byte channel, byte note, byte velocity)
 {
+    checkStorePreset(note, false);
+
     voiceController.noteOff(note, velocity);
 }
 
@@ -51,12 +105,16 @@ void midiControlChange(byte channel, byte control, byte value)
 
 void midiHandleSystemExclusive(byte *array, unsigned int size)
 {
+    Serial.printf("===> Sys Ex: RX %d bytes\n", size);
+
     waveformStore.midiHandleSystemExclusive(array, size);
 }
 
 void setup()
 {
     Serial.begin(115200);
+
+    Serial.printf("SC: %d\n", sizeof(SynthConfiguration));
 
     // Allocate memory for the audio engine
     AudioMemory(1200);
@@ -69,6 +127,9 @@ void setup()
     sgtl5000.unmuteLineout();
     sgtl5000.volume(0.3);
     sgtl5000.unmuteHeadphone();
+
+    presetStore.init();
+    waveformStore.init();
 
     uint8_t flash = 0;
 
@@ -87,15 +148,30 @@ void setup()
 
     myusb.begin();
 
+    // Allow MIDI input on both USB's.
     usbMidi1.setHandleNoteOn(midiNoteOn);
     usbMidi1.setHandleNoteOff(midiNoteOff);
     usbMidi1.setHandlePitchChange(midiPitchChange);
     usbMidi1.setHandleControlChange(midiControlChange);
     usbMidi1.setHandleSystemExclusive(midiHandleSystemExclusive);
 
+    usbMIDI.setHandleNoteOn(midiNoteOn);
+    usbMIDI.setHandleNoteOff(midiNoteOff);
+    usbMIDI.setHandlePitchChange(midiPitchChange);
+    usbMIDI.setHandleControlChange(midiControlChange);
+    usbMIDI.setHandleSystemExclusive(midiHandleSystemExclusive);
+
     configurationOrchestrator.begin();
 
     indicators.keyboardConnected(0, false);
+}
+
+inline void readUsb()
+{
+    while (usbMidi1.read())
+        ;
+    while (usbMIDI.read())
+        ;
 }
 
 bool isKeyboardConnected()
@@ -128,6 +204,8 @@ bool isKeyboardConnected()
             connected = false;
             disconnected = true;
         }
+
+        readUsb();
 
         return false;
     }
@@ -165,6 +243,5 @@ void loop()
 
     voiceController.task(microSeconds);
 
-    while (usbMidi1.read())
-        ;
+    readUsb();
 }
