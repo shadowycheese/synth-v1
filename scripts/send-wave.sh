@@ -4,10 +4,38 @@
 
 set -e
 
+DEPENDENCIES=("ffmpeg" "amidi")
+MISSING_DEPS=0
+
+# Loop through and check each application
+for app in "${DEPENDENCIES[@]}"; do
+    if ! command -v "$app" &> /dev/null; then
+        if [ "$MISSING_DEPS" -eq 0 ]; then
+            echo "Error:" >&2
+        fi
+        MISSING_DEPS=$((MISSING_DEPS + 1))
+        echo "  $app is not installed or not in your PATH" >&2
+    fi
+done
+
+# If anything was missing, exit early before running the rest of the script
+if [ "$MISSING_DEPS" -gt 0 ]; then
+    exit 1
+fi
+
+MIDI_PORT=$(amidi -l | grep -i Teensy | awk '/hw:/ {print $2; exit}')
+
+if [ -z "$MIDI_PORT" ]; then    
+    echo "Error:" >&2
+    echo "  No active USB MIDI devices found via 'amidi -l'." >&2
+    exit 1
+fi
+
 SYS_START_1=0xF0
 SYS_START_2=0x7E
 SYS_START_3=0x7F
 SYS_END=0xF7
+WAV_SAMPLES=256
 
 WAVE_ID=
 WAV_FILE=
@@ -16,24 +44,33 @@ BIN_FILE=
 WAV_TYPE=
 HEX_DATA=
 
+function usage() {
+    echo "Usage:"
+    echo '  send-wave <arguments>'
+    echo 
+    echo "  -t <waveform_id> The waveform storage location (0-5)"
+    echo "  -s <hex_string>  The waveform in HEX. Must be exactly 1024 characters"
+    echo "  -w <wav_file>    A .wav file containing a single audio frame with exactly $WAV_SAMPLES 16 bit signed values"
+    echo "  -h <hex_file>    A file containing 1024 hex characters (whitepsace is allowed)"
+    echo "  -b <bin_file>    A binary file containing exactly $WAV_SAMPLES 16 bit signed values"
+    exit 0
+}
 function upload_chunk() {
-    printf "Sending Wave ID $WAVE_ID ($WAV_FILE) chunk $1 via MIDI port: $MIDI_PORT..."
-    TMP_BIN=$(mktemp)
+    tmp_bin=$(mktemp)
 
-    printf "\\x$(printf %02X $SYS_START_1)\\x$(printf %02X $SYS_START_2)\\x$(printf %02X $SYS_START_3)" > "$TMP_BIN"
-    printf "\\x$(printf %02X "$1")" >> "$TMP_BIN"
-    printf "\\x$(printf %02X "$WAVE_ID")" >> "$TMP_BIN"
-    printf "%s" $2 >> "$TMP_BIN"
-    printf "\\x$(printf %02X $SYS_END)" >> "$TMP_BIN"
+    printf "\\x$(printf %02X $SYS_START_1)\\x$(printf %02X $SYS_START_2)\\x$(printf %02X $SYS_START_3)" > "$tmp_bin"
+    printf "\\x$(printf %02X "$1")" >> "$tmp_bin"
+    printf "\\x$(printf %02X "$WAVE_ID")" >> "$tmp_bin"
+    printf "%s" $2 >> "$tmp_bin"
+    printf "\\x$(printf %02X $SYS_END)" >> "$tmp_bin"
 
-    if amidi -p $MIDI_PORT -s $TMP_BIN; then
-        printf "COMPLETE\n"
-        rm -f "$TMP_BIN"
+    if amidi -p $MIDI_PORT -s $tmp_bin; then
+        rm -f "$tmp_bin"
     else
         printf "FAILED\n"
         echo "Error:" >&2
         echo "  amidi transmission failed." >&2
-        rm -f "$TMP_BIN"
+        rm -f "$tmp_bin"
         exit 1
     fi
 }
@@ -73,7 +110,7 @@ function validate_hex_string() {
     fi
 }
 
-function validate_wav_file() {
+function load_wav_file() {
     if [ ! -f "$WAV_FILE" ]; then
         echo "Error:" >&2
         echo "  File '$WAV_FILE' not found." >&2
@@ -95,27 +132,41 @@ function validate_wav_file() {
         exit 1
     fi
 
-    if [[ "$channels" -ne 1 ]]; then
+    if [[ "$channels" -gt 2 ]]; then
         echo "Error:" >&2
-        echo "  File is not mono (Channels: $channels)" >&2
+        echo "  Only mono/stereo .wav files are supported (Channels: $channels)" >&2
         exit 1
     fi
 
-    if [[ "$samples" -ne 256 ]]; then
-        echo "Error:" >&2
-        echo "  File does not contain exactly 256 samples (Got: $samples)" >&2
-        exit 1
+    tmp_wav=$(mktemp)
+
+    if [[ "$samples" -ne $WAV_SAMPLES ]]; then
+        target_rate=$(awk "BEGIN {print int(($WAV_SAMPLES / $samples) * $samples)}")
+
+        ffmpeg_af="asetrate=44100*$WAV_SAMPLES/$samples,aresample=44100,atrim=end_sample=$WAV_SAMPLES"
+
+        if [[ "$channels" -eq 2 ]]; then
+            echo "Resampling stereo $WAV_FILE: ${samples}Hz => ${WAV_SAMPLES}Hz"
+            ffmpeg_af="pan=mono|c0=0.5*c0+0.5*c1,${ffmpeg_af}"
+        else
+            echo "Resampling $WAV_FILE: ${samples}Hz => ${WAV_SAMPLES}Hz"
+        fi
+
+        ffmpeg -y -v error -i "$WAV_FILE" -af "$ffmpeg_af" -frames:a 1 -f wav $tmp_wav
+    else 
+        cp $WAV_FILE $tmp_wav
     fi
 
-    HEX_DATA=$(ffmpeg -v error -i "$WAV_FILE" -f s16be - | od -An -v -tx1 | tr -d ' \n')
+    HEX_DATA=$(ffmpeg -v error -i "$tmp_wav" -f s16be - | od -An -v -tx1 | tr -d ' \n')
 
-    echo $HEX_DATA
+    rm -f $tmp_wav
+
     error_msg="(read from .wav file $WAV_FILE)\n"
 
     validate_hex_string $error_msg
 }
 
-function validate_hex_file() {
+function load_hex_file() {
     if [ ! -f "$HEX_FILE" ]; then
         echo "Error:" >&2
         echo "  File '$HEX_FILE' not found." >&2
@@ -130,7 +181,7 @@ function validate_hex_file() {
     validate_hex_string $error_msg
 }
 
-function validate_bin_file() {
+function load_bin_file() {
     if [ ! -f "$BIN_FILE" ]; then
         echo "Error:" >&2
         echo "  File '$BIN_FILE' not found." >&2
@@ -145,14 +196,7 @@ function validate_bin_file() {
 }
 
 if [ "$1" == "" ]; then
-    echo "Usage:"
-    echo '  send-wave <arguments>'
-    echo 
-    echo "  -t <waveform_id> The waveform storage location (0-5)"
-    echo "  -s <hex_string>  The waveform in HEX. Must be exactly 1024 characters"
-    echo "  -w <wav_file>    A .wav file containing exactly 256 16 bit signed values"
-    echo "  -h <hex_file>    A file containing 1024 hex characters (whitepsace is allowed)"
-    echo "  -b <bin_file>    A binary file containing exactly 256 16 bit signed values"
+    usage
     exit 0
 fi
 
@@ -183,6 +227,9 @@ while [[ $# > 0 ]] ; do
       WAV_TYPE=BIN_FILE
       shift
       ;;
+    --help)
+      usage
+      exit 0
   esac
   shift
 done
@@ -190,11 +237,11 @@ done
 validate_wave_id
 
 if [ "$WAV_TYPE" == 'WAV_FILE' ]; then
-    validate_wav_file 
+    load_wav_file 
 else if [ "$WAV_TYPE" == 'HEX_FILE' ]; then
-    validate_hex_file 
+    load_hex_file 
 else if [ "$WAV_TYPE" == 'BIN_FILE' ]; then
-    validate_bin_file 
+    load_bin_file 
 else if [ "$WAV_TYPE" == 'HEX_DATA' ]; then
     validate_hex_string "(command line)"
 else 
@@ -215,4 +262,4 @@ upload_chunk 0 "${HEX_DATA:0:256}"
 upload_chunk 1 "${HEX_DATA:256:256}"
 upload_chunk 2 "${HEX_DATA:512:256}"
 upload_chunk 3 "${HEX_DATA:768:256}"
-
+echo "Waveform data uploaded: Location=$WAVE_ID [MIDI=$MIDI_PORT]"

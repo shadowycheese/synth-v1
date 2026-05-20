@@ -12,7 +12,7 @@ def generate_perfect_wavetable(num_samples=256):
         multiplier = 2.0
 
         if i > 204:
-            multiplier = 12.0
+            multiplier = 1.0
         elif i > 153:
             multiplier = 7.0
         elif i > 102:

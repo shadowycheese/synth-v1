@@ -691,6 +691,8 @@ private:
 
     int updateOscillatorWaveform(OscillatorConfiguration *oscillator, const char *name, int changeFlag, int value)
     {
+        bool showIndicator = abs(value - _lastWaveForm) > 1;
+
         int newValue = (value / 86) % 12;
 
         if (newValue != oscillator->waveform)
@@ -699,9 +701,14 @@ private:
 
             oscillator->waveform = newValue;
 
-            _indicators->waveformSelected(micros(), newValue);
+            showIndicator = true;
 
             return changeFlag;
+        }
+
+        if (showIndicator)
+        {
+            _indicators->waveformSelected(micros(), oscillator->waveform);
         }
 
         return 0;
@@ -775,6 +782,8 @@ private:
 
         return value;
     }
+
+    int _lastWaveForm;
 };
 
 #endif
