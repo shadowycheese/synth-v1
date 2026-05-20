@@ -6,7 +6,8 @@
 #include "../io/Indicators.h"
 
 const int SLOT_SIZE_BYTES = 512;
-const int CHUNK_SIZE_BYTES = 64;
+const int CHUNK_SIZE_BYTES = 128;
+const int CHUNK_SIZE_WORDS = 64;
 
 class WaveformStore
 {
@@ -37,7 +38,8 @@ public:
         }
 
         int targetChunk = array[3] % 4;
-        int targetSlot = array[4] % 4;
+        int targetOffset = targetChunk * CHUNK_SIZE_WORDS;
+        int targetSlot = array[4] % 6;
         int dataIndex = 5;
 
         Serial.printf("MIDI SysEx: %02x %02x %02x; SLOT %d, CHUNK %d\n", array[0], array[1], array[2], targetSlot, targetChunk);
@@ -51,9 +53,9 @@ public:
                 unsignedValue = (unsignedValue << 4) + hexToNibble((char)array[dataIndex++]);
             }
 
-            int16_t signedValue = (int16_t)(unsignedValue - 32768);
+            int16_t signedValue = (int16_t)(uint16_t)unsignedValue;
 
-            _waveformBank[targetSlot][i] = signedValue;
+            _waveformBank[targetSlot][i + targetOffset] = signedValue;
         }
 
         uint32_t eepromAddress = targetSlot * SLOT_SIZE_BYTES + targetChunk * CHUNK_SIZE_BYTES;

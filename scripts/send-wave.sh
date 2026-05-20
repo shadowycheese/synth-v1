@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 
-# Exit immediately if a command fails
+# IMPORTANT: This script requires ffmpeg + amidi to be installed
+
 set -e
 
-# System Exclusive (SysEx) headers. 
-# 0xF0 is the mandatory start byte. 0xF7 is the mandatory end byte.
-# Adjust the manufacturer ID bytes (e.g., 7E 7F) to match your hardware specs.
 SYS_START_1=0xF0
 SYS_START_2=0x7E
 SYS_START_3=0x7F
@@ -19,7 +17,7 @@ WAV_TYPE=
 HEX_DATA=
 
 function upload_chunk() {
-    print "Sending Wave ID $WAVE_ID ($WAV_FILE) chunk $1 via MIDI port: $MIDI_PORT..."
+    printf "Sending Wave ID $WAVE_ID ($WAV_FILE) chunk $1 via MIDI port: $MIDI_PORT..."
     TMP_BIN=$(mktemp)
 
     printf "\\x$(printf %02X $SYS_START_1)\\x$(printf %02X $SYS_START_2)\\x$(printf %02X $SYS_START_3)" > "$TMP_BIN"
@@ -29,10 +27,10 @@ function upload_chunk() {
     printf "\\x$(printf %02X $SYS_END)" >> "$TMP_BIN"
 
     if amidi -p $MIDI_PORT -s $TMP_BIN; then
-        print "COMPLETE\n"
+        printf "COMPLETE\n"
         rm -f "$TMP_BIN"
     else
-        print "FAILED\n"
+        printf "FAILED\n"
         echo "Error:" >&2
         echo "  amidi transmission failed." >&2
         rm -f "$TMP_BIN"
@@ -62,14 +60,14 @@ function validate_hex_string() {
     hex_size=${#HEX_DATA}
     if [ "$hex_size" -ne 1024 ]; then
         echo "Error:" >&2
-        echo "  Hex data must contain exactly 1024 hex digits" >&2
-        printf "  $*" >&2
+        echo "  Hex data must contain exactly 1024 hex digits [was $hex_size]" >&2
+        printf "  $*\n" >&2
         exit 1
     fi      
 
-    if [[ ! "$string" =~ ^[0-9a-fA-F]+$ ]]; then
+    if [[ ! "$HEX_DATA" =~ ^[0-9a-fA-F]+$ ]]; then
         echo "Error:" >&2
-        printf "  $*" >&2
+        printf "  $*\n" >&2
         echo "  Hex data must match [0-9a-fA-F]" >&2
         exit 1
     fi
@@ -82,21 +80,39 @@ function validate_wav_file() {
         exit 1
     fi      
 
-    file_size=$(wc -c < "$WAV_FILE")
+    metadata=$(ffprobe -v error -show_entries stream=codec_name,sample_fmt,channels,duration_ts -of default=noprint_wrappers=1:nokey=1 "$WAV_FILE" 2>/dev/null)
 
-    # Verify strict file size (must be exactly 556 bytes - i.e. wav headers + 256 signed ints)
-    if [ "$file_size" -ne 556 ]; then
+    readarray -t metadata_arr <<< "$metadata"
+
+    codec="${metadata_arr[0]}"
+    fmt="${metadata_arr[1]}"
+    channels="${metadata_arr[2]}"
+    samples="${metadata_arr[3]}"
+
+    if [[ ! "$codec" =~ pcm_s16 ]]; then
         echo "Error:" >&2
-        echo "  File size is $file_size bytes. Expected exactly 556 bytes. " >&2
-        echo "  Ensure the .wav file is a single frame consisting of 256 16 signed bit integers" >&2
+        echo "  Audio codec is not 16-bit signed PCM (Was: $codec)" >&2
         exit 1
     fi
 
-    HEX_DATA=$(tail -c +45 "$WAV_FILE" | xxd -p | tr -d '\n' | tr '[:lower:]' '[:upper:]')
+    if [[ "$channels" -ne 1 ]]; then
+        echo "Error:" >&2
+        echo "  File is not mono (Channels: $channels)" >&2
+        exit 1
+    fi
 
+    if [[ "$samples" -ne 256 ]]; then
+        echo "Error:" >&2
+        echo "  File does not contain exactly 256 samples (Got: $samples)" >&2
+        exit 1
+    fi
+
+    HEX_DATA=$(ffmpeg -v error -i "$WAV_FILE" -f s16be - | od -An -v -tx1 | tr -d ' \n')
+
+    echo $HEX_DATA
     error_msg="(read from .wav file $WAV_FILE)\n"
 
-    validate_hex_string
+    validate_hex_string $error_msg
 }
 
 function validate_hex_file() {
@@ -121,7 +137,6 @@ function validate_bin_file() {
         exit 1
     fi      
 
-    # File size must be > 1024 bytes as the min number of hex digits
     HEX_DATA=$(cat "$BIN_FILE" | xxd -p | tr -d '\n' | tr '[:lower:]' '[:upper:]')
 
     error_msg="(read from binary file $BIN_FILE)\n"
@@ -155,12 +170,12 @@ while [[ $# > 0 ]] ; do
       ;;
     -s)
       HEX_DATA=$2
-      WAV_TYPE=HEX_FILE
+      WAV_TYPE=HEX_DATA
       shift
       ;;
-    -s)
-      HEX_DATA=$2
-      WAV_TYPE=HEX_DATA
+    -h)
+      HEX_FILE=$2
+      WAV_TYPE=HEX_FILE
       shift
       ;;
     -b)
@@ -181,7 +196,11 @@ else if [ "$WAV_TYPE" == 'HEX_FILE' ]; then
 else if [ "$WAV_TYPE" == 'BIN_FILE' ]; then
     validate_bin_file 
 else if [ "$WAV_TYPE" == 'HEX_DATA' ]; then
-    validate_hex_string
+    validate_hex_string "(command line)"
+else 
+    echo "Error:" >&2
+    echo "  No input type specified" >&2
+    exit 1
 fi fi fi fi
 
 MIDI_PORT=$(amidi -l | grep -i Teensy | awk '/hw:/ {print $2; exit}')

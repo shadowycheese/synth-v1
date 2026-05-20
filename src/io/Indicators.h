@@ -2,7 +2,6 @@
 #define INDICATORS_H
 
 #include "../Constants.h"
-#include "../voice/VoiceController.h"
 
 const int PIN_VU = 33;
 const int PIN_LED_595_DATA = 34;

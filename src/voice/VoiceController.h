@@ -4,10 +4,10 @@
 #include <Audio.h>
 #include "Voice.h"
 #include "../SynthConfiguration.h"
-#include "../SynthConfigurationListener.h"
 #include "../Constants.h"
-#include "../io/Indicators.h"
 #include "../utils/CallCounter.h"
+#include "../io/Indicators.h"
+#include "../store/WaveformStore.h"
 
 class VoiceController : public SynthConfigurationListener
 {

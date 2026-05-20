@@ -3,7 +3,6 @@
 
 #include <Audio.h>
 #include "Constants.h"
-#include "store/WaveformStore.h"
 
 using SynthConfigurationFlags = uint16_t;
 
@@ -180,4 +179,7 @@ public:
     }
 };
 
+class A
+{
+};
 #endif

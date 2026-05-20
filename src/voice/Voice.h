@@ -5,9 +5,8 @@
 #include "../Constants.h"
 #include "../SynthConfiguration.h"
 #include "../SynthConfigurationListener.h"
+#include "../store/WaveformStore.h"
 #include "VoiceConfiguration.h"
-
-#define CHORUS_DELAY_LEN (AUDIO_BLOCK_SAMPLES * 50) // 35ms
 
 class Voice : public SynthConfigurationListener
 {
