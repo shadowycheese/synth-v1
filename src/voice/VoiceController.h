@@ -90,16 +90,15 @@ private:
     uint32_t _nextFilterUpdateTime;
 
     // Voice updating
-    VoiceConfiguration _voiceConfiguration;
+    SynthConfiguration _synthConfiguration;
     int _voiceConfigurationVersion;
     uint32_t nextVoiceUpdateTime;
     int _nextVoiceToUpdate;
     int _voiceVersions[MAX_VOICES];
     int _pendingChanges[MAX_VOICES];
-    float peak1f, peak2f, peak3f, peak4f, peak5f;
 
-    CallCounter voiceUpdates;
-    CallCounter filterUpdates;
+    CallCounter _voiceUpdates;
+    CallCounter _filterUpdates;
 
     // Indicators
     uint32_t _nextIndicatorUpdateTime;

@@ -1,7 +1,7 @@
 #include "VoiceController.h"
 
-VoiceController::VoiceController(Indicators *inidicators, WaveformStore *waveformStore) : voiceUpdates("Voice Updates"),
-                                                                                          filterUpdates("Filter Updates")
+VoiceController::VoiceController(Indicators *inidicators, WaveformStore *waveformStore) : _voiceUpdates("Voice Updates"),
+                                                                                          _filterUpdates("Filter Updates")
 {
     for (int i = 0; i < 4; i++)
     {
@@ -27,24 +27,24 @@ VoiceController::VoiceController(Indicators *inidicators, WaveformStore *wavefor
 
 void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
 {
-    _voiceConfiguration.copy(configuration);
+    _synthConfiguration.copy(configuration);
 
     if (volumeChanged(changeFlags))
     {
-        leftAmp.gain(_voiceConfiguration.ampGain * 5.0f);
-        rightAmp.gain(_voiceConfiguration.ampGain * 5.0f);
+        leftAmp.gain(_synthConfiguration.ampGain * 5.0f);
+        rightAmp.gain(_synthConfiguration.ampGain * 5.0f);
     }
 
     if (effectChanged(changeFlags))
     {
-        if (_voiceConfiguration.reverb > 0.0f)
+        if (_synthConfiguration.reverb > 0.0f)
         {
             left.gain(0, 0.8f);
             left.gain(1, 0.5f);
             right.gain(0, 0.8f);
             right.gain(1, 0.5f);
 
-            reverb.reverbTime(_voiceConfiguration.reverb);
+            reverb.reverbTime(_synthConfiguration.reverb);
         }
         else
         {
@@ -140,7 +140,7 @@ void VoiceController::updateVoiceFiltersAndEffects(uint32_t microSeconds)
 
         if (_nextFilterToUpdate == 0)
         {
-            filterUpdates.inc(microSeconds);
+            _filterUpdates.inc(microSeconds);
         }
     }
 }
@@ -165,7 +165,7 @@ void VoiceController::updateVoices(uint32_t microSeconds)
 
     if (_nextVoiceToUpdate == 0)
     {
-        voiceUpdates.inc(microSeconds);
+        _voiceUpdates.inc(microSeconds);
     }
 
     if (voicePool[voice].isOverdriven())
@@ -173,11 +173,12 @@ void VoiceController::updateVoices(uint32_t microSeconds)
         _wasOverdrive = true;
     }
 
+    // Ladded is expensive in CPU and affects the voice update rate - so we go less time after
     nextVoiceUpdateTime = microSeconds + (voicePool[voice].isLadderFilterSelected() ? 750 : 1500);
 
     if (_voiceVersions[voice] != _voiceConfigurationVersion)
     {
-        voicePool[voice].onSynthConfigurationChanged(&_voiceConfiguration, _pendingChanges[voice]);
+        voicePool[voice].onSynthConfigurationChanged(&_synthConfiguration, _pendingChanges[voice]);
 
         _voiceVersions[voice] = _voiceConfigurationVersion;
 

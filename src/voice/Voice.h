@@ -7,7 +7,6 @@
 #include "../SynthConfiguration.h"
 #include "../SynthConfigurationListener.h"
 #include "../store/WaveformStore.h"
-#include "VoiceConfiguration.h"
 
 class Voice : public SynthConfigurationListener
 {
@@ -124,7 +123,7 @@ private:
             AudioConnection(filterSvf, 0, filterMixer, 1),
         };
 
-    VoiceConfiguration _voiceConfiguration;
+    SynthConfiguration _voiceConfiguration;
     WaveformStore *_waveformStore;
 
     int _filterType;

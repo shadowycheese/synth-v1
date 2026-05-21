@@ -695,7 +695,7 @@ private:
 
         if (newValue != oscillator->waveform)
         {
-            Serial.printf("%s waveform %d [%s]\n", name, newValue, VoiceConfiguration::WaveFormNames[newValue]);
+            Serial.printf("%s waveform %d [%s]\n", name, newValue, SynthConfiguration::WaveFormNames[newValue]);
 
             oscillator->waveform = newValue;
 

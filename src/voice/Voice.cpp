@@ -371,7 +371,7 @@ void Voice::configuraOscillator(AudioSynthWaveformModulated *wf, OscillatorConfi
         wf->arbitraryWaveform(wfData, 0.0f);
     }
 
-    wf->begin(VoiceConfiguration::WaveFormMap[config->waveform]);
+    wf->begin(SynthConfiguration::WaveFormMap[config->waveform]);
 }
 
 void Voice::configuraOscillator(AudioSynthWaveform *wf, OscillatorConfiguration *config)
@@ -384,5 +384,5 @@ void Voice::configuraOscillator(AudioSynthWaveform *wf, OscillatorConfiguration 
         wf->arbitraryWaveform(wfData, 0.0f);
     }
 
-    wf->begin(VoiceConfiguration::WaveFormMap[config->waveform]);
+    wf->begin(SynthConfiguration::WaveFormMap[config->waveform]);
 }

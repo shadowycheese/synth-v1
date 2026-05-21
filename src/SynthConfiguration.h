@@ -18,6 +18,8 @@ static constexpr SynthConfigurationFlags PASSTHROUGH_CHANGED = 0x0100;
 
 static constexpr SynthConfigurationFlags ALL_CHANGED = 0x00FF;
 
+#define CUSTOM_WAVEFORM_OFFSET 6
+
 static constexpr uint32_t MAGIC_CODE = 0x05C1FADE;
 
 inline bool waveformChanged(SynthConfigurationFlags flags)
@@ -183,9 +185,36 @@ public:
         masterVolume = source->masterVolume;
         ampGain = source->ampGain;
     }
+
+    static constexpr int WaveFormMap[12] = {
+        WAVEFORM_SINE,
+        WAVEFORM_PULSE,
+        WAVEFORM_TRIANGLE,
+        WAVEFORM_SAWTOOTH,
+        WAVEFORM_SAWTOOTH_REVERSE,
+        WAVEFORM_SAMPLE_HOLD,
+        WAVEFORM_ARBITRARY,
+        WAVEFORM_ARBITRARY,
+        WAVEFORM_ARBITRARY,
+        WAVEFORM_ARBITRARY,
+        WAVEFORM_ARBITRARY,
+        WAVEFORM_ARBITRARY //
+    };
+
+    static constexpr const char *WaveFormNames[12] = {
+        "Sine",
+        "Square",
+        "Triangle",
+        "Saw",
+        "Reverse Saw",
+        "Sample & Hold",
+        "Custom 1",
+        "Custom 2",
+        "Custom 3",
+        "Custom 4",
+        "Custom 5",
+        "Custom 6", //
+    };
 };
 
-class A
-{
-};
 #endif
