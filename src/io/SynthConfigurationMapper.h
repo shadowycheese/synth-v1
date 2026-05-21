@@ -625,7 +625,7 @@ private:
     int updateAttack(EnvelopeConfiguration *envelope, const char *name, int changeFlag, int value)
     {
         float newValue = getScaledValue(value, 1);
-        newValue = 1.0f + (powf(newValue, 3) * 3999.0f);
+        newValue = 2.0f + (powf(newValue, 3) * 3998.0f);
 
         if (newValue != envelope->attack)
         {

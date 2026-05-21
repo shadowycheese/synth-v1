@@ -11,13 +11,13 @@ class PresetStore : public SynthConfigurationListener
 public:
     PresetStore(SynthConfigurationListener *configurationListener)
     {
-        _currentPreset = -1;
+        _currentPreset = 0;
         _configurationListener = configurationListener;
     }
 
     void init()
     {
-        for (int i = 0; i < 3; i++)
+        for (int i = 1; i <= 3; i++)
         {
             read(i);
         }
@@ -34,11 +34,15 @@ public:
 
         Serial.printf("Saving current preset: %d\n", _currentPreset);
 
-        _presetConfiguration[_currentPreset - 1].copy(&_buttonConfiguration);
+        int presetLoc = presetLocation(_currentPreset);
+        int presetIndex = _currentPreset - 1;
 
-        int presetLocation = PRESET_LOCATION + (_currentPreset - 1) * PRESET_SIZE;
+        _presetConfiguration[presetIndex].copy(&_buttonConfiguration);
+        _presetValid[presetIndex] = true;
 
-        EEPROM.put(presetLocation, _presetConfiguration[_currentPreset - 1]);
+        EEPROM.put(presetLoc, _presetConfiguration[presetIndex]);
+
+        notifyPresetUpdate();
     }
 
     void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
@@ -53,24 +57,33 @@ public:
             {
                 _currentPreset = newPreset;
 
-                if (_currentPreset == 0 || !_presetValid[_currentPreset - 1])
+                if (_currentPreset == 0)
                 {
-                    Serial.printf("Selecting new preset %d\n", _currentPreset);
+                    Serial.printf("Selecting button configuration settings %d\n", _currentPreset);
 
-                    _configurationListener->onSynthConfigurationChanged(&_buttonConfiguration, ALL_CHANGED);
+                    notifyStandardUpdate(changeFlags);
                 }
                 else
                 {
-                    Serial.printf("Selecting raw config %d\n", _currentPreset);
+                    if (!isValid(_currentPreset))
+                    {
+                        storePreset();
+                    }
+                    else
+                    {
+                        Serial.printf("Selecting preset %d\n", _currentPreset);
 
-                    _configurationListener->onSynthConfigurationChanged(&_presetConfiguration[_currentPreset - 1], ALL_CHANGED);
+                        notifyPresetUpdate();
+
+                        return;
+                    }
                 }
             }
         }
 
         if (_currentPreset == 0)
         {
-            _configurationListener->onSynthConfigurationChanged(&_buttonConfiguration, changeFlags);
+            notifyStandardUpdate(changeFlags);
         }
     }
 
@@ -81,31 +94,61 @@ private:
     bool _presetValid[3];
     uint8_t _currentPreset;
 
-    const int PRESET_LOCATION = 3100;
-    const int PRESET_SIZE = 300;
+    const uint32_t PRESET_LOCATION = 3100;
+    const uint32_t PRESET_SIZE = 300;
 
-    void read(int id)
+    bool isValid(int presetId)
     {
-        int presetLocation = PRESET_LOCATION + id * PRESET_SIZE;
+        if (presetId <= 0 || presetId >= 4)
+        {
+            return false;
+        }
+        return _presetValid[presetId - 1];
+    }
+
+    void notifyPresetUpdate()
+    {
+        _configurationListener->onSynthConfigurationChanged(&_presetConfiguration[_currentPreset - 1], ALL_CHANGED);
+    }
+
+    void notifyStandardUpdate(uint16_t changeFlags)
+    {
+        _configurationListener->onSynthConfigurationChanged(&_buttonConfiguration, changeFlags);
+    }
+
+    void read(int presetId)
+    {
+        int presetLoc = presetLocation(presetId);
+        int presetIndex = presetId - 1;
 
         uint32_t magic;
 
-        EEPROM.get(presetLocation, magic);
+        EEPROM.get(presetLoc, magic);
 
-        _presetValid[id] = magic == MAGIC_CODE;
+        _presetValid[presetIndex] = magic == MAGIC_CODE;
 
-        if (_presetValid[id])
+        if (_presetValid[presetIndex])
         {
-            Serial.printf("Loaded valid preset: %d\n", id + 1);
+            Serial.printf("Loaded valid preset: %d\n", presetId);
 
-            _presetValid[id] = true;
+            _presetValid[presetIndex] = true;
 
-            EEPROM.get(presetLocation, _presetConfiguration[id]);
+            EEPROM.get(presetLoc, _presetConfiguration[presetIndex]);
         }
         else
         {
-            Serial.printf("Not loaded invalid preset: %d\n", id + 1);
+            Serial.printf("Not loaded invalid preset: %d\n", presetId);
         }
+    }
+
+    uint32_t presetLocation(int presetId)
+    {
+        if (presetId <= 0 || presetId >= 4)
+        {
+            return -1;
+        }
+
+        return PRESET_LOCATION + ((presetId - 1) * PRESET_SIZE);
     }
 };
 

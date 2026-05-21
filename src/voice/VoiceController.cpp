@@ -50,7 +50,7 @@ void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configurat
         {
             left.gain(0, 1.0f);
             left.gain(1, 0.0f);
-            right.gain(0, 0.0f);
+            right.gain(0, 1.0f);
             right.gain(1, 0.0f);
 
             reverb.reverbTime(0.0f);

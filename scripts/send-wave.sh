@@ -195,6 +195,18 @@ function load_bin_file() {
     validate_hex_string $error_msg
 }
 
+function load_c_file() {
+    HEX_DATA=$(sed -n '/{/,/}/p' "$C_FILE" |
+        grep -oE -- '-?[0-9]+' |
+        while read -r n; do
+            printf "%04X" $(( n & 0xFFFF ))
+        done)
+
+    error_msg="(read 'C' variable in file $C_FILE)\n"
+
+    validate_hex_string $error_msg
+}
+
 if [ "$1" == "" ]; then
     usage
     exit 0
@@ -227,6 +239,10 @@ while [[ $# > 0 ]] ; do
       WAV_TYPE=BIN_FILE
       shift
       ;;
+    -c)
+      C_FILE=$2
+      WAV_TYPE=C_FILE
+      ;;
     --help)
       usage
       exit 0
@@ -242,13 +258,15 @@ else if [ "$WAV_TYPE" == 'HEX_FILE' ]; then
     load_hex_file 
 else if [ "$WAV_TYPE" == 'BIN_FILE' ]; then
     load_bin_file 
+else if [ "$WAV_TYPE" == 'C_FILE' ]; then
+    load_c_file
 else if [ "$WAV_TYPE" == 'HEX_DATA' ]; then
     validate_hex_string "(command line)"
 else 
     echo "Error:" >&2
     echo "  No input type specified" >&2
     exit 1
-fi fi fi fi
+fi fi fi fi fi
 
 MIDI_PORT=$(amidi -l | grep -i Teensy | awk '/hw:/ {print $2; exit}')
 

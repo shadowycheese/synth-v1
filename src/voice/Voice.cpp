@@ -80,6 +80,8 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
 
     if (lfoChanged(changeFlags))
     {
+        Serial.printf("lfo phase: %0.3f, lfo2 freq %0.3f\n", _voiceConfiguration.decoherence, _voiceConfiguration.lfo2.frequency);
+
         configureLfo(&lfo1a, &_voiceConfiguration.lfo1, _frequency, 0.0f);
         configureLfo(&lfo1b, &_voiceConfiguration.lfo1, _frequency, 120.0 * _voiceConfiguration.decoherence);
         configureLfo(&lfo1c, &_voiceConfiguration.lfo1, _frequency, 240.0 * _voiceConfiguration.decoherence);
