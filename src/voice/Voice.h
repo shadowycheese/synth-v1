@@ -2,6 +2,7 @@
 #define VOICE_H
 
 #include <Audio.h>
+#include "../audio/AudioAnalyzeOverdrive.h"
 #include "../Constants.h"
 #include "../SynthConfiguration.h"
 #include "../SynthConfigurationListener.h"
@@ -19,12 +20,14 @@ public:
     void noteOn(byte note, float frequency, float velocity);
     void noteOff();
 
-    AudioStream &getOutput() { return delayMixer; }
+    AudioStream &getOutput() { return postDelayMixer; }
 
-    bool isPlaying();
-    uint32_t timestamp() { return _timestamp; };
-    byte noteLastPlayed() { return _note; };
+    inline bool isPlaying() { return envelopeVoice.isActive(); };
+    inline uint32_t timestamp() { return _timestamp; };
+    inline byte noteLastPlayed() { return _note; };
 
+    inline bool isLadderFilterSelected() { return _filterType == FILTER_LADDER; };
+    inline bool isOverdriven() { return overdrive.isOverdriven(true); }
     void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags);
     void updateFilterAndEffects();
     void setWaveformStore(WaveformStore *waveformStore) { _waveformStore = waveformStore; }
@@ -44,19 +47,23 @@ private:
     AudioSynthWaveformDc pulseWidths[4];
     AudioEffectMultiply modMultiply;
     AudioSynthNoisePink noise;
-    AudioFilterStateVariable filter;
     AudioEffectDelay delay;
-    AudioMixer4 delayMixer;
+    AudioMixer4 preDelayMixer;
+    AudioMixer4 postDelayMixer;
+
+    AudioFilterLadder filterLadder;
+    AudioFilterStateVariable filterSvf;
 
     AudioEffectEnvelope envelopeVoice;
     AudioEffectEnvelope envelopeLfo1a;
     AudioEffectEnvelope envelopeLfo1b;
     AudioEffectEnvelope envelopeLfo1c;
     AudioEffectEnvelope envelopeLfo2;
+    AudioAnalyzeOverdrive overdrive;
 
     AudioMixer4 filterMixer;
 
-    AudioConnection patches[40] =
+    AudioConnection patches[39] =
         {
             AudioConnection(lfo1a, 0, envelopeLfo1a, 0),
             AudioConnection(lfo1b, 0, envelopeLfo1b, 0),
@@ -90,33 +97,53 @@ private:
 
             AudioConnection(oscillatorMixer1, 0, oscillatorMixerMain, 0),
             AudioConnection(oscillatorMixer2, 0, oscillatorMixerMain, 1),
-            AudioConnection(oscillatorMixerMain, 0, filter, 0),
-
-            AudioConnection(envelopeLfo2, 0, filter, 1),
-            AudioConnection(filter, 0, filterMixer, 0),
-            AudioConnection(filter, 2, filterMixer, 1),
             AudioConnection(oscillatorMixerMain, 0, filterMixer, 2),
 
             AudioConnection(filterMixer, 0, envelopeVoice, 0),
-            AudioConnection(envelopeVoice, 0, delay, 0),
-            AudioConnection(envelopeVoice, 0, delayMixer, 0),
-            AudioConnection(delay, 0, delayMixer, 1),
+            AudioConnection(envelopeVoice, 0, preDelayMixer, 0),
+            AudioConnection(postDelayMixer, 0, preDelayMixer, 1),
+            AudioConnection(preDelayMixer, 0, delay, 0),
+            AudioConnection(envelopeVoice, 0, postDelayMixer, 0),
+            AudioConnection(delay, 0, postDelayMixer, 1),
+            AudioConnection(filterMixer, 0, overdrive, 0),
+        };
+
+    static const int FILTER_PATCH_COUNT = 3;
+
+    AudioConnection ladderPatches[FILTER_PATCH_COUNT] =
+        {
+            AudioConnection(oscillatorMixerMain, 0, filterLadder, 0),
+            AudioConnection(envelopeLfo2, 0, filterLadder, 1),
+            AudioConnection(filterLadder, 0, filterMixer, 0),
+        };
+
+    AudioConnection svfPatches[FILTER_PATCH_COUNT] =
+        {
+            AudioConnection(oscillatorMixerMain, 0, filterSvf, 0),
+            AudioConnection(envelopeLfo2, 0, filterSvf, 1),
+            AudioConnection(filterSvf, 0, filterMixer, 1),
         };
 
     VoiceConfiguration _voiceConfiguration;
     WaveformStore *_waveformStore;
 
+    int _filterType;
     uint32_t _timestamp;
     byte _note;
     float _frequency;
     float _gain;
-    float _currentDelay;
     uint32_t _iteration;
+    bool _isOverdriven;
+    float _currentDelay;
+
+    inline void connectFilterPatches(AudioConnection *patches);
+    inline void disconnectFilterPatches(AudioConnection *patches);
 
     void init();
     void configureVoice();
     void configureGain();
     void configureFilter();
+    void configureFilterPatches(int filterType);
     void configureEffects();
     void configureOscilators();
     void configuraOscillator(AudioSynthWaveformModulated *wf, OscillatorConfiguration *config);

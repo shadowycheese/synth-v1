@@ -1,11 +1,15 @@
 #ifndef MUXIO_H
 #define MUXIO_H
 
+#include <Arduino.h>
 #include "../Constants.h"
 #include "AnalogBuffer.h"
 #include "ControllerIoListener.h"
 
 #define DEBOUNCE_DISTANCE 1
+#define MUX_SIZE 16
+
+// Wired up the pots the wrong way round!
 #define INVERTED 1
 
 const int MUX1_READ_PIN = 27;
@@ -15,17 +19,17 @@ const int MUX3_READ_PIN = 25;
 class MuxIo
 {
 public:
-    MuxIo(int id, int activePinCount)
+    MuxIo(int id)
     {
         _muxId = id;
-        _activePins = activePinCount;
+        _activePins = MUX_SIZE;
         _inputPin = _muxId == 1
                         ? MUX1_READ_PIN
                     : _muxId == 2
                         ? MUX2_READ_PIN
                         : MUX3_READ_PIN;
 
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < MUX_SIZE; i++)
         {
             _commitValues[i] = -1;
         }
@@ -94,9 +98,9 @@ private:
     int _activePins;
     int _muxId;
     int _inputPin;
-    AnalogBuffer _currentValues[16];
-    int _bufferValues[16];
-    int _commitValues[16];
+    AnalogBuffer _currentValues[MUX_SIZE];
+    int _bufferValues[MUX_SIZE];
+    int _commitValues[MUX_SIZE];
     bool _bufferChanged;
 
     bool debounce(int value1, int value2, int minDiff)

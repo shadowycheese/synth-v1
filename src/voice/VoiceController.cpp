@@ -168,7 +168,12 @@ void VoiceController::updateVoices(uint32_t microSeconds)
         voiceUpdates.inc(microSeconds);
     }
 
-    nextVoiceUpdateTime = microSeconds + 1500;
+    if (voicePool[voice].isOverdriven())
+    {
+        _wasOverdrive = true;
+    }
+
+    nextVoiceUpdateTime = microSeconds + (voicePool[voice].isLadderFilterSelected() ? 750 : 1500);
 
     if (_voiceVersions[voice] != _voiceConfigurationVersion)
     {
@@ -185,8 +190,11 @@ void VoiceController::updateIndicators(uint32_t microSeconds)
     if (peak.available())
     {
         _lastPeak = peak.read();
+    }
 
-        if (_lastPeak >= 1.0f)
+    for (int i = 0; i < 4; i++)
+    {
+        if (overdrive[i].isOverdriven(true))
         {
             _wasOverdrive = true;
         }

@@ -177,6 +177,7 @@ private:
         digitalWriteFast(PIN_LED_595_LATCH, HIGH);
     }
 
+    // Looks weird because the 8 LED's are not wired up in the correct order.
     static constexpr uint8_t _wfLedValues[12] = {132, 130, 129, 136, 160, 144, 196, 194, 193, 200, 224, 208};
 
     static constexpr uint8_t _kbLedValues[14] = {4, 2, 1, 8, 32, 16, 64, 128, 64, 16, 32, 8, 1, 2};

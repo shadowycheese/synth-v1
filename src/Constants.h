@@ -9,4 +9,11 @@ const float TWELTH_ROOT_OF_TWO = 1.0595;
 
 #define MAX_VOICES 8
 
+enum
+{
+    FILTER_NONE = 0,
+    FILTER_LADDER = 1,
+    FILTER_SVF = 2
+};
+
 #endif

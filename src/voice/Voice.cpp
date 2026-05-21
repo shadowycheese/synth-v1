@@ -31,6 +31,11 @@ void Voice::init()
     lfo1a.phase(0.0f);
     lfo1b.phase(120.0f);
     lfo1c.phase(240.0f);
+
+    preDelayMixer.gain(0, 1.0f);
+    preDelayMixer.gain(1, 0.5f);
+
+    filterLadder.inputDrive(1.0f);
 }
 
 void Voice::noteOn(byte note, float frequency, float gain)
@@ -63,25 +68,6 @@ void Voice::noteOff()
 
 void Voice::updateFilterAndEffects()
 {
-    if (_voiceConfiguration.delay > 0.0f)
-    {
-        if (_currentDelay < _voiceConfiguration.delay)
-        {
-            _currentDelay += 0.5f;
-
-            _currentDelay = min(_currentDelay, _voiceConfiguration.delay);
-
-            delay.delay(0, _currentDelay);
-        }
-        else if (_currentDelay > _voiceConfiguration.delay)
-        {
-            _currentDelay -= 0.5f;
-
-            _currentDelay = max(_currentDelay, _voiceConfiguration.delay);
-
-            delay.delay(0, _currentDelay);
-        }
-    }
 }
 
 void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
@@ -99,8 +85,6 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
 
     if (lfoChanged(changeFlags))
     {
-        Serial.printf("lfo phase: %0.3f, lfo2 freq %0.3f\n", _voiceConfiguration.decoherence, _voiceConfiguration.lfo2.frequency);
-
         configureLfo(&lfo1a, &_voiceConfiguration.lfo1, _frequency, 0.0f);
         configureLfo(&lfo1b, &_voiceConfiguration.lfo1, _frequency, 120.0 * _voiceConfiguration.decoherence);
         configureLfo(&lfo1c, &_voiceConfiguration.lfo1, _frequency, 240.0 * _voiceConfiguration.decoherence);
@@ -135,11 +119,6 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint1
     {
         configureVoice();
     }
-}
-
-bool Voice::isPlaying()
-{
-    return envelopeVoice.isActive();
 }
 
 void Voice::configureVoice()
@@ -208,18 +187,16 @@ void Voice::configureEffects()
 {
     if (_voiceConfiguration.delay == 0.0f)
     {
-        delay.delay(0, 0.0f);
-
-        _currentDelay = 0.0f;
-
-        delayMixer.gain(0, 1.0f);
-        delayMixer.gain(1, 0.0f);
+        postDelayMixer.gain(0, 1.0f);
+        postDelayMixer.gain(1, 0.0f);
     }
     else
     {
-        delayMixer.gain(0, 0.8f);
-        delayMixer.gain(1, 0.5f);
+        postDelayMixer.gain(0, 0.8f);
+        postDelayMixer.gain(1, 0.7f);
     }
+
+    delay.delay(0, _voiceConfiguration.delay);
 }
 
 void Voice::configureGain()
@@ -256,9 +233,15 @@ void Voice::configureFilter()
 {
     if (_voiceConfiguration.filterCutoff == 1.0f)
     {
-        filter.frequency(20000.0f);
-        filter.octaveControl(0.0f);
-        filter.resonance(0.0f);
+        configureFilterPatches(FILTER_NONE);
+
+        filterSvf.frequency(20000.0f);
+        filterSvf.octaveControl(0.0f);
+        filterSvf.resonance(0.0f);
+
+        filterLadder.frequency(20000.0f);
+        filterLadder.octaveControl(0.0f);
+        filterLadder.resonance(0.0f);
 
         filterMixer.gain(0, 0.0f);
         filterMixer.gain(1, 0.0f);
@@ -266,6 +249,8 @@ void Voice::configureFilter()
     }
     else
     {
+        configureFilterPatches(_voiceConfiguration.filterType);
+
         float minFrequency = 30.0f;
         float maxFrequency = 8000.0f;
         float maxCutoff = 12000.0f;
@@ -286,28 +271,66 @@ void Voice::configureFilter()
         float maxOctaves = log2f(maxCutoff / cutoffFrequency);
         float octaves = max(0, min(maxOctaves, _voiceConfiguration.octaveControl));
 
-        Serial.printf("%d: cutoff %0.1f, omax %0.3f, oct %0.3f\n",
-                      _voiceConfiguration.lowPass,
-                      cutoffFrequency,
-                      maxOctaves,
-                      octaves);
+        filterLadder.frequency(cutoffFrequency);
+        filterLadder.octaveControl(octaves);
+        filterLadder.resonance(1.8f * _voiceConfiguration.resonance);
+        filterSvf.frequency(cutoffFrequency);
+        filterSvf.octaveControl(octaves);
+        filterSvf.resonance(0.7 + (4.3f * _voiceConfiguration.resonance));
+    }
+}
 
-        filter.frequency(cutoffFrequency);
-        filter.octaveControl(octaves);
-        filter.resonance(_voiceConfiguration.resonance);
+void Voice::configureFilterPatches(int filterType)
+{
+    if (_filterType == filterType)
+    {
+        return;
+    }
 
-        if (_voiceConfiguration.lowPass)
-        {
-            filterMixer.gain(0, 1.0f);
-            filterMixer.gain(1, 0.0f);
-            filterMixer.gain(2, 0.0f);
-        }
-        else
-        {
-            filterMixer.gain(0, 0.0f);
-            filterMixer.gain(1, 1.0f);
-            filterMixer.gain(2, 0.0f);
-        }
+    _filterType = filterType;
+
+    if (_filterType == FILTER_NONE)
+    {
+        disconnectFilterPatches(ladderPatches);
+        disconnectFilterPatches(svfPatches);
+
+        filterMixer.gain(0, 0.0f);
+        filterMixer.gain(1, 0.0f);
+        filterMixer.gain(2, 1.0f);
+    }
+    else if (_filterType == FILTER_LADDER)
+    {
+        connectFilterPatches(ladderPatches);
+        disconnectFilterPatches(svfPatches);
+
+        filterMixer.gain(0, 1.0f);
+        filterMixer.gain(1, 0.0f);
+        filterMixer.gain(2, 0.0f);
+    }
+    else if (_filterType == FILTER_SVF)
+    {
+        disconnectFilterPatches(ladderPatches);
+        connectFilterPatches(svfPatches);
+
+        filterMixer.gain(0, 0.0f);
+        filterMixer.gain(1, 1.0f);
+        filterMixer.gain(2, 0.0f);
+    }
+}
+
+inline void Voice::connectFilterPatches(AudioConnection *patches)
+{
+    for (int i = 0; i < FILTER_PATCH_COUNT; i++, patches++)
+    {
+        patches->connect();
+    }
+}
+
+inline void Voice::disconnectFilterPatches(AudioConnection *patches)
+{
+    for (int i = 0; i < FILTER_PATCH_COUNT; i++, patches++)
+    {
+        patches->disconnect();
     }
 }
 
@@ -325,8 +348,6 @@ void Voice::configureOscilators()
     configuraOscillator(&lfo1b, &_voiceConfiguration.lfo1);
     configuraOscillator(&lfo1c, &_voiceConfiguration.lfo1);
     configuraOscillator(&lfo2, &_voiceConfiguration.lfo2);
-
-    uint8_t wf = _voiceConfiguration.audioWaveform(0);
 
     configuraOscillator(&oscillators[0], &_voiceConfiguration.oscillators[0]);
 

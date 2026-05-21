@@ -36,7 +36,7 @@ public:
         WAVEFORM_ARBITRARY //
     };
 
-    static constexpr char *WaveFormNames[12] = {
+    static constexpr const char *WaveFormNames[12] = {
         "Sine",
         "Square",
         "Triangle",

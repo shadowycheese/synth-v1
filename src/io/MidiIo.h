@@ -1,19 +1,19 @@
 #ifndef MIDIIO_H
 #define MIDIIO_H
 
+#include <Arduino.h>
 #include "../Constants.h"
-#include "AnalogBuffer.h"
 #include "ControllerIoListener.h"
 
 #define MIDI_INPUT_COUNT 7
 
-#define MIDI_INPUT_PITCH 0
-#define MIDI_INPUT_RESONANCE 1
-#define MIDI_INPUT_DETUNE 2
-#define MIDI_INPUT_LFO_FREQUENCY 3
-#define MIDI_INPUT_REVERB 4
-#define MIDI_INPUT_CHORUS 5
-#define MIDI_INPUT_CUTOFF 6
+#define MIDI_INPUT_0 0
+#define MIDI_INPUT_1 1
+#define MIDI_INPUT_2 2
+#define MIDI_INPUT_3 3
+#define MIDI_INPUT_4 4
+#define MIDI_INPUT_5 5
+#define MIDI_INPUT_6 6
 
 class MidiIo
 {
@@ -28,31 +28,12 @@ public:
 
     void midiPitch(int pitch)
     {
-        update(MIDI_INPUT_PITCH, pitch);
+        update(MIDI_INPUT_0, pitch);
     }
 
     void midiControl(byte control, byte value)
     {
-        if (control == 7)
-        {
-            // update(MIDI_INPUT_RESONANCE, 8 * (int)value);
-        }
-        else if (control == 74)
-        {
-            // update(MIDI_INPUT_DETUNE, 8 * (int)value);
-        }
-        else if (control == 71)
-        {
-            // update(MIDI_INPUT_LFO_FREQUENCY, 8 * (int)value);
-        }
-        else if (control == 72)
-        {
-            // update(MIDI_INPUT_REVERB, 8 * (int)value);
-        }
-        else if (control == 73)
-        {
-            // update(MIDI_INPUT_CHORUS, 8 * (int)value);
-        }
+        // Additional inputs from MIDI controller can go here
     }
 
     void commitBufferChanges(ControllerIoListener *ioListener)

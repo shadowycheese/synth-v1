@@ -4,7 +4,7 @@
 #include "voice/VoiceController.h"
 #include "USBHost_t36.h"
 #include "Constants.h"
-#include "io/SynthConfigurationOrchestrator.h"
+#include "io/InputController.h"
 #include "io/SynthConfigurationMapper.h"
 #include "store/WaveformStore.h"
 #include "store/PresetStore.h"
@@ -23,7 +23,7 @@ PresetStore presetStore(&voiceController);
 SynthConfiguration synthConfiguration;
 SynthConfigurationMapper configurationMapper(&synthConfiguration, &presetStore, &indicators);
 
-SynthConfigurationOrchestrator configurationOrchestrator(&configurationMapper);
+InputController configurationOrchestrator(&configurationMapper);
 
 USBHost myusb;
 USBHub hub1(myusb);
@@ -215,7 +215,7 @@ inline void logAudioCPU()
 {
     static int loops = 0;
 
-    if ((loops++ % 3000000) == 0)
+    if ((loops++ % 300000) == 0)
     {
         Serial.printf("CPU Usage: %02.02f%% (Max %02.02f%%) Memory Usage: %d% (Max %d)\n",
                       AudioProcessorUsage(),

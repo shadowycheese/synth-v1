@@ -8,6 +8,7 @@
 #include "../utils/CallCounter.h"
 #include "../io/Indicators.h"
 #include "../store/WaveformStore.h"
+#include "../audio/AudioAnalyzeOverdrive.h"
 
 class VoiceController : public SynthConfigurationListener
 {
@@ -44,6 +45,8 @@ private:
     AudioAmplifier rightAmp;
     AudioEffectReverb reverb;
     AudioAnalyzePeak peak;
+    AudioAnalyzeOverdrive overdrive[4];
+
     AudioConnection patches[40] =
         {
             AudioConnection(voicePool[0].getOutput(), 0, mixer1, 0),
@@ -70,7 +73,12 @@ private:
             AudioConnection(left, 0, leftAmp, 0),
             AudioConnection(right, 0, rightAmp, 0),
 
-            AudioConnection(leftAmp, 0, peak, 0), //
+            AudioConnection(leftAmp, 0, peak, 0),
+
+            AudioConnection(mixer1, 0, overdrive[0], 0),
+            AudioConnection(mixer2, 0, overdrive[1], 0),
+            AudioConnection(masterMix, 0, overdrive[2], 0),
+            AudioConnection(leftAmp, 0, overdrive[3], 0),
         };
 
     byte _notesVoiceMap[256];

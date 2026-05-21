@@ -1,5 +1,5 @@
 #ifndef SYNTHCONFIGURATIONMAPPER_H
-#define SYNTHCONFIGURATIONMAPPER
+#define SYNTHCONFIGURATIONMAPPER_H
 
 #include "../Constants.h"
 #include "ControllerIoListener.h"
@@ -206,7 +206,7 @@ private:
 
             _localSynthConfiguration.ampGain = newValue;
 
-            return VOLUME_CHANGED;
+            return VOLUME_CHANGED | PASSTHROUGH_CHANGED;
         }
 
         return 0;
@@ -396,13 +396,13 @@ private:
 
     int updateFilterType(int value)
     {
-        bool newValue = value < 512 ? false : true;
+        int newValue = (value < 512) ? FILTER_LADDER : FILTER_SVF;
 
-        if (newValue != _localSynthConfiguration.lowPass)
+        if (newValue != _localSynthConfiguration.filterType)
         {
-            Serial.printf("Low pass filter = %s\n", newValue ? "true" : "false");
+            Serial.printf("Filter = %s [%d]\n", newValue == FILTER_LADDER ? "Ladder" : "SVF", value);
 
-            _localSynthConfiguration.lowPass = newValue;
+            _localSynthConfiguration.filterType = newValue;
 
             return FILTER_CHANGED;
         }
@@ -444,7 +444,7 @@ private:
 
     int updatePreset1(int value)
     {
-        bool newValue = value < 512 ? true : false;
+        bool newValue = (value < 512) ? true : false;
 
         if (newValue != _localSynthConfiguration.preset1)
         {
@@ -460,7 +460,7 @@ private:
 
     int updatePreset2(int value)
     {
-        bool newValue = value < 512 ? true : false;
+        bool newValue = (value < 512) ? true : false;
 
         if (newValue != _localSynthConfiguration.preset2)
         {
@@ -476,7 +476,7 @@ private:
 
     int updateHalfSaw(int value)
     {
-        bool newValue = value < 512 ? true : false;
+        bool newValue = (value < 512) ? true : false;
 
         if (newValue != _localSynthConfiguration.leftSideOnly)
         {
@@ -507,10 +507,8 @@ private:
 
     int updateResonance(int value)
     {
-        float valueF = getScaledValue(value, 3);
+        float newValue = getScaledValue(value, 3);
 
-        float newValue = 0.7f + 4.3f * valueF;
-        // float newValue = 1.8f * valueF;
         if (newValue != _localSynthConfiguration.resonance)
         {
             Serial.printf("Resonance = %0.3f\n", newValue);
@@ -565,7 +563,7 @@ private:
 
             _localSynthConfiguration.pitchBend = newValue;
 
-            return VOICE_CHANGED;
+            return VOICE_CHANGED | PASSTHROUGH_CHANGED;
         }
 
         return 0;

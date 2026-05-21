@@ -14,6 +14,7 @@ static constexpr SynthConfigurationFlags VOICE_CHANGED = 0x0010;
 static constexpr SynthConfigurationFlags EFFECT_CHANGED = 0x0020;
 static constexpr SynthConfigurationFlags LFO_CHANGED = 0x0040;
 static constexpr SynthConfigurationFlags PRESET_CHANGED = 0x0080;
+static constexpr SynthConfigurationFlags PASSTHROUGH_CHANGED = 0x0100;
 
 static constexpr SynthConfigurationFlags ALL_CHANGED = 0x00FF;
 
@@ -57,6 +58,11 @@ inline bool lfoChanged(SynthConfigurationFlags flags)
 inline bool presetChanged(SynthConfigurationFlags flags)
 {
     return flags & PRESET_CHANGED;
+}
+
+inline bool isPassthroughChange(SynthConfigurationFlags flags)
+{
+    return flags & PASSTHROUGH_CHANGED;
 }
 
 class OscillatorConfiguration
@@ -114,7 +120,7 @@ public:
     EnvelopeConfiguration lfo2Envelope;
 
     // Filter parameters
-    bool lowPass;
+    int filterType;
     float filterCutoff;
     float resonance = 0;
     float octaveControl = 5;
@@ -148,7 +154,7 @@ public:
         keyTracking = source->keyTracking;
         delay = source->delay;
         leftSideOnly = source->leftSideOnly;
-        lowPass = source->lowPass;
+        filterType = source->filterType;
         resonance = source->resonance;
         pitchBend = source->pitchBend;
         decoherence = source->decoherence;

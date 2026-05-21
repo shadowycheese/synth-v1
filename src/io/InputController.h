@@ -1,7 +1,9 @@
-#ifndef SYNTHCONFIGURATIONORCHESTRATOR_H
-#define SYNTHCONFIGURATIONORCHESTRATOR_H
+#ifndef INPUTCONTROLLER_H
+#define INPUTCONTROLLER_H
 
+#include <Arduino.h>
 #include "../Constants.h"
+#include "../utils/CallCounter.h"
 #include "MuxIo.h"
 #include "MidiIo.h"
 #include "ControllerIoListener.h"
@@ -24,14 +26,14 @@ enum ReadState : uint8_t
 
 const int MUX_COUNT = 1;
 
-class SynthConfigurationOrchestrator
+class InputController
 {
 public:
-    SynthConfigurationOrchestrator(ControllerIoListener *controllerListener) : _mux1(INPUT_GROUP_MUX1, 16),
-                                                                               _mux2(INPUT_GROUP_MUX2, 16),
-                                                                               _mux3(INPUT_GROUP_MUX3, 16),
-                                                                               _ioReads("IO Read Cycles"),
-                                                                               _commits("IO Commits")
+    InputController(ControllerIoListener *controllerListener) : _mux1(INPUT_GROUP_MUX1),
+                                                                _mux2(INPUT_GROUP_MUX2),
+                                                                _mux3(INPUT_GROUP_MUX3),
+                                                                _ioReads("IO Read Cycles"),
+                                                                _commits("IO Commits")
     {
         _controllerListener = controllerListener;
     }

@@ -85,6 +85,10 @@ public:
         {
             notifyStandardUpdate(changeFlags);
         }
+        else if (isPassthroughChange(changeFlags))
+        {
+            notifyPassThroughUpdate(configuration, changeFlags);
+        }
     }
 
 private:
@@ -114,6 +118,30 @@ private:
     void notifyStandardUpdate(uint16_t changeFlags)
     {
         _configurationListener->onSynthConfigurationChanged(&_buttonConfiguration, changeFlags);
+    }
+
+    void notifyPassThroughUpdate(SynthConfiguration *configuration, uint16_t changeFlags)
+    {
+        int presetIndex = _currentPreset - 1;
+        bool notify = false;
+
+        if (configuration->pitchBend != _presetConfiguration[presetIndex].pitchBend)
+        {
+            _presetConfiguration[presetIndex].pitchBend = configuration->pitchBend;
+
+            notify = true;
+        }
+        if (configuration->ampGain != _presetConfiguration[presetIndex].ampGain)
+        {
+            _presetConfiguration[presetIndex].ampGain = configuration->ampGain;
+
+            notify = true;
+        }
+
+        if (notify)
+        {
+            _configurationListener->onSynthConfigurationChanged(&_presetConfiguration[presetIndex], changeFlags);
+        }
     }
 
     void read(int presetId)
