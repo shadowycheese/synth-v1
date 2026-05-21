@@ -125,7 +125,7 @@ int VoiceController::findOldestVoice(byte note)
     return oldest;
 }
 
-void VoiceController::updateVoiceFilters(uint32_t microSeconds)
+void VoiceController::updateVoiceFiltersAndEffects(uint32_t microSeconds)
 {
     // Handle millis wrapping
     if (microSeconds >= _nextFilterUpdateTime)
@@ -136,7 +136,7 @@ void VoiceController::updateVoiceFilters(uint32_t microSeconds)
 
         _nextFilterUpdateTime = microSeconds + 200;
 
-        voicePool[voice].updateFilter();
+        voicePool[voice].updateFilterAndEffects();
 
         if (_nextFilterToUpdate == 0)
         {
@@ -221,7 +221,7 @@ void VoiceController::updateIndicators(uint32_t microSeconds)
 
 void VoiceController::task(uint32_t microSeconds)
 {
-    updateVoiceFilters(microSeconds);
+    updateVoiceFiltersAndEffects(microSeconds);
     updateVoices(microSeconds);
     updateIndicators(microSeconds);
 }

@@ -61,8 +61,27 @@ void Voice::noteOff()
     envelopeLfo2.noteOff();
 }
 
-void Voice::updateFilter()
+void Voice::updateFilterAndEffects()
 {
+    if (_voiceConfiguration.delay > 0.0f)
+    {
+        if (_currentDelay < _voiceConfiguration.delay)
+        {
+            _currentDelay += 0.5f;
+
+            _currentDelay = min(_currentDelay, _voiceConfiguration.delay);
+
+            delay.delay(0, _currentDelay);
+        }
+        else if (_currentDelay > _voiceConfiguration.delay)
+        {
+            _currentDelay -= 0.5f;
+
+            _currentDelay = max(_currentDelay, _voiceConfiguration.delay);
+
+            delay.delay(0, _currentDelay);
+        }
+    }
 }
 
 void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
@@ -189,6 +208,10 @@ void Voice::configureEffects()
 {
     if (_voiceConfiguration.delay == 0.0f)
     {
+        delay.delay(0, 0.0f);
+
+        _currentDelay = 0.0f;
+
         delayMixer.gain(0, 1.0f);
         delayMixer.gain(1, 0.0f);
     }
@@ -197,8 +220,6 @@ void Voice::configureEffects()
         delayMixer.gain(0, 0.8f);
         delayMixer.gain(1, 0.5f);
     }
-
-    delay.delay(0, _voiceConfiguration.delay);
 }
 
 void Voice::configureGain()
@@ -287,8 +308,6 @@ void Voice::configureFilter()
             filterMixer.gain(1, 1.0f);
             filterMixer.gain(2, 0.0f);
         }
-
-        updateFilter();
     }
 }
 

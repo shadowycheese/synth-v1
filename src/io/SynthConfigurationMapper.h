@@ -428,7 +428,7 @@ private:
 
     int updateDelay(int value)
     {
-        float newValue = getScaledValue(value, 1) * 100.0f;
+        float newValue = getScaledValue(value, 1) * 250.0f;
 
         if (newValue != _localSynthConfiguration.delay)
         {

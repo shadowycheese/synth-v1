@@ -61,7 +61,7 @@ public:
                 {
                     Serial.printf("Selecting button configuration settings %d\n", _currentPreset);
 
-                    notifyStandardUpdate(changeFlags);
+                    notifyStandardUpdate(ALL_CHANGED);
                 }
                 else
                 {

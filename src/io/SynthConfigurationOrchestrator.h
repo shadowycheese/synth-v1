@@ -20,7 +20,7 @@ enum ReadState : uint8_t
 #define MUX_SELECT1_PIN 31
 #define MUX_SELECT0_PIN 32
 
-#define DEBUG 1
+#define DEBUG 0
 
 const int MUX_COUNT = 1;
 

@@ -26,7 +26,7 @@ public:
     byte noteLastPlayed() { return _note; };
 
     void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags);
-    void updateFilter();
+    void updateFilterAndEffects();
     void setWaveformStore(WaveformStore *waveformStore) { _waveformStore = waveformStore; }
 
 private:
@@ -110,6 +110,7 @@ private:
     byte _note;
     float _frequency;
     float _gain;
+    float _currentDelay;
     uint32_t _iteration;
 
     void init();

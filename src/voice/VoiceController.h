@@ -29,7 +29,7 @@ public:
 
 private:
     void updateVoices(uint32_t microSeconds);
-    void updateVoiceFilters(uint32_t microSeconds);
+    void updateVoiceFiltersAndEffects(uint32_t microSeconds);
     void updateIndicators(uint32_t microSeconds);
 
     Voice voicePool[MAX_VOICES];
