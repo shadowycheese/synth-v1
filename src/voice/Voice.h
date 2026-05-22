@@ -3,10 +3,11 @@
 
 #include <Audio.h>
 #include "../audio/AudioAnalyzeOverdrive.h"
-#include "../Constants.h"
-#include "../SynthConfiguration.h"
-#include "../SynthConfigurationListener.h"
+#include "../config/SynthConfiguration.h"
+#include "../config/SynthConfigurationListener.h"
 #include "../store/WaveformStore.h"
+
+#define DETUNE_MAX_SPREAD 1200
 
 class Voice : public SynthConfigurationListener
 {
@@ -22,8 +23,8 @@ public:
     AudioStream &getOutput() { return postDelayMixer; }
 
     inline bool isPlaying() { return envelopeVoice.isActive(); };
-    inline uint32_t timestamp() { return _timestamp; };
-    inline byte noteLastPlayed() { return _note; };
+    inline uint32_t getTimestamp() { return _timestamp; };
+    inline byte getLastPlayedNote() { return _note; };
 
     inline bool isLadderFilterSelected() { return _filterType == FILTER_LADDER; };
     inline bool isOverdriven() { return overdrive.isOverdriven(true); }
@@ -45,7 +46,7 @@ private:
     AudioSynthWaveformModulated oscillators[7];
     AudioSynthWaveformDc pulseWidths[4];
     AudioEffectMultiply modMultiply;
-    AudioSynthNoisePink noise;
+    AudioSynthNoiseWhite noise;
     AudioEffectDelay delay;
     AudioMixer4 preDelayMixer;
     AudioMixer4 postDelayMixer;

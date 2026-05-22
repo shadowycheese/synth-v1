@@ -1,5 +1,5 @@
-#ifndef CALLCOUNTER_H
-#define CALLCOUNTER_H
+#ifndef CALL_COUNTER_H
+#define CALL_COUNTER_H
 
 #include <Audio.h>
 

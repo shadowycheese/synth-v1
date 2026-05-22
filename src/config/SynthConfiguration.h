@@ -1,10 +1,16 @@
-#ifndef SYNTHCONFIGURATION_H
-#define SYNTHCONFIGURATION_H
+#ifndef SYNTH_CONFIGURATION_H
+#define SYNTH_CONFIGURATION_H
 
 #include <Audio.h>
-#include "Constants.h"
 
 using SynthConfigurationFlags = uint16_t;
+
+enum
+{
+    FILTER_NONE = 0,
+    FILTER_LADDER = 1,
+    FILTER_SVF = 2
+};
 
 static constexpr SynthConfigurationFlags ENVELOPE_CHANGED = 0x0001;
 static constexpr SynthConfigurationFlags FILTER_CHANGED = 0x0002;

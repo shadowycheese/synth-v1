@@ -1,10 +1,9 @@
-#ifndef SYNTHCONFIGURATIONMAPPER_H
-#define SYNTHCONFIGURATIONMAPPER_H
+#ifndef SYNTH_CONFIGURATION_MAPPER_H
+#define SYNTH_CONFIGURATION_MAPPER_H
 
-#include "../Constants.h"
 #include "ControllerIoListener.h"
-#include "../SynthConfiguration.h"
-#include "../SynthConfigurationListener.h"
+#include "../config/SynthConfiguration.h"
+#include "../config/SynthConfigurationListener.h"
 
 #define DEAD_ZONE 12
 
@@ -287,7 +286,7 @@ private:
 
     int updateNoiseAmplitude(int value)
     {
-        float newValue = getScaledValue(value, 3);
+        float newValue = getScaledValue(value, 2);
 
         if (newValue != _localSynthConfiguration.noiseGain)
         {
@@ -507,7 +506,7 @@ private:
 
     int updateResonance(int value)
     {
-        float newValue = getScaledValue(value, 3);
+        float newValue = getScaledValue(value, 2);
 
         if (newValue != _localSynthConfiguration.resonance)
         {
@@ -572,7 +571,7 @@ private:
     // Common
     int updateOscillatorFrequency(OscillatorConfiguration *oscillator, const char *name, int changeFlag, int value)
     {
-        float valueF = getScaledValue(value, 3);
+        float valueF = getScaledValue(value, 2);
 
         float newValue = (valueF * 1000.0f);
 
@@ -623,7 +622,7 @@ private:
     int updateAttack(EnvelopeConfiguration *envelope, const char *name, int changeFlag, int value)
     {
         float newValue = getScaledValue(value, 1);
-        newValue = 2.0f + (powf(newValue, 3) * 3998.0f);
+        newValue = 2.0f + (powf(newValue, 2) * 3998.0f);
 
         if (newValue != envelope->attack)
         {
@@ -640,7 +639,7 @@ private:
     int updateDecay(EnvelopeConfiguration *envelope, const char *name, int changeFlag, int value)
     {
         float newValue = getScaledValue(value, 1);
-        newValue = 5.0f + (powf(newValue, 3) * 7995.0f);
+        newValue = 5.0f + (powf(newValue, 2) * 7995.0f);
 
         if (newValue != envelope->decay)
         {
@@ -673,7 +672,7 @@ private:
     int updateRelease(EnvelopeConfiguration *envelope, const char *name, int changeFlag, int value)
     {
         float newValue = getScaledValue(value, 1);
-        newValue = 5.0f + (powf(newValue, 3) * 7995.0f);
+        newValue = 5.0f + (powf(newValue, 2) * 7995.0f);
 
         if (newValue != envelope->release)
         {
@@ -767,18 +766,14 @@ private:
         value -= DEAD_ZONE;
 
         float valueF = (float)value / range;
+        float value2 = valueF;
 
-        return fastPow(valueF, order);
-    }
-
-    inline float fastPow(float value, int p)
-    {
-        for (int i = 1; i < p; i++)
+        while (--order > 0)
         {
-            value *= value;
+            valueF *= value2;
         }
 
-        return value;
+        return valueF;
     }
 
     int _lastWaveForm;

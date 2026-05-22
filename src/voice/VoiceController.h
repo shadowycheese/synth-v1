@@ -1,14 +1,15 @@
-#ifndef VOICECONTROLLER_H
-#define VOICECONTROLLER_H
+#ifndef VOICE_CONTROLLER_H
+#define VOICE_CONTROLLER_H
 
 #include <Audio.h>
 #include "Voice.h"
-#include "../SynthConfiguration.h"
-#include "../Constants.h"
+#include "../config/SynthConfiguration.h"
 #include "../utils/CallCounter.h"
 #include "../io/Indicators.h"
 #include "../store/WaveformStore.h"
 #include "../audio/AudioAnalyzeOverdrive.h"
+
+#define MAX_VOICES 8
 
 class VoiceController : public SynthConfigurationListener
 {
@@ -32,6 +33,8 @@ private:
     void updateVoices(uint32_t microSeconds);
     void updateVoiceFiltersAndEffects(uint32_t microSeconds);
     void updateIndicators(uint32_t microSeconds);
+
+    inline static float midiNoteHz(int8_t note) { return 440.0f * pow(2.0f, (note - 69.0f) / 12.0f); };
 
     Voice voicePool[MAX_VOICES];
 

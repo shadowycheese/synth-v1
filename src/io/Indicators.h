@@ -1,8 +1,6 @@
 #ifndef INDICATORS_H
 #define INDICATORS_H
 
-#include "../Constants.h"
-
 const int PIN_VU = 33;
 const int PIN_LED_595_DATA = 34;
 const int PIN_LED_595_CLOCK = 35;

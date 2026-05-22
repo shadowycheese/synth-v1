@@ -1,8 +1,7 @@
-#ifndef INPUTCONTROLLER_H
-#define INPUTCONTROLLER_H
+#ifndef INPUT_CONTROLLER_H
+#define INPUT_CONTROLLER_H
 
 #include <Arduino.h>
-#include "../Constants.h"
 #include "../utils/CallCounter.h"
 #include "MuxIo.h"
 #include "MidiIo.h"

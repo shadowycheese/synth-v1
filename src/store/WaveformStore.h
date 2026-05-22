@@ -1,5 +1,5 @@
-#ifndef WAVEFORMSTORE_H
-#define WAVEFORMSTORE_H
+#ifndef WAVEFORM_STORE_H
+#define WAVEFORM_STORE_H
 
 #include <EEPROM.h>
 #include <Wire.h>
@@ -20,7 +20,9 @@ public:
     {
         for (int i = 0; i < 6; i++)
         {
-            EEPROM.get(i * SLOT_SIZE_BYTES, _waveformBank[i]);
+            uint32_t eepromAddress = i * SLOT_SIZE_BYTES;
+
+            EEPROM.get(eepromAddress, _waveformBank[i]);
         }
     }
 
@@ -55,16 +57,19 @@ public:
 
             int16_t signedValue = (int16_t)(uint16_t)unsignedValue;
 
-            _waveformBank[targetSlot][i + targetOffset] = signedValue;
+            _waveformBank[targetSlot][targetOffset + i] = signedValue;
         }
 
-        uint32_t eepromAddress = targetSlot * SLOT_SIZE_BYTES + targetChunk * CHUNK_SIZE_BYTES;
+        if (targetChunk == 3)
+        {
+            uint32_t eepromAddress = targetSlot * SLOT_SIZE_BYTES;
 
-        EEPROM.put(eepromAddress, _waveformBank[targetSlot]);
+            EEPROM.put(eepromAddress, _waveformBank[targetSlot]);
+
+            Serial.printf("Last chunk received.  Updated EEPROM Slot %d [%03X]\n", targetSlot, eepromAddress);
+        }
 
         _indicators->waveformUploaded(micros(), targetSlot);
-
-        Serial.printf("wrote %d bytes to %08X\n", 256, eepromAddress);
     }
 
 private:

@@ -1,10 +1,10 @@
-#ifndef PRESETSTORE_H
-#define PRESETSTORE_H
+#ifndef PRESET_STORE_H
+#define PRESET_STORE_H
 
 #include <EEPROM.h>
 #include <Wire.h>
-#include "../SynthConfiguration.h"
-#include "../SynthConfigurationListener.h"
+#include "../config/SynthConfiguration.h"
+#include "../config/SynthConfigurationListener.h"
 
 class PresetStore : public SynthConfigurationListener
 {
@@ -20,6 +20,53 @@ public:
         for (int i = 1; i <= 3; i++)
         {
             read(i);
+        }
+    }
+
+    // This will save the preset when the top and bottom two notes on my midi keyboard
+    // are pressed (I ran out of inputs for a dedicated button and this is my hacky solution)
+    void checkStorePreset(byte note, bool on)
+    {
+        if (on)
+        {
+            switch (note)
+            {
+            case 0x24:
+                _storePresetBitMask |= 1;
+                break;
+            case 0x25:
+                _storePresetBitMask |= 2;
+                break;
+            case 0x5F:
+                _storePresetBitMask |= 4;
+                break;
+            case 0x60:
+                _storePresetBitMask |= 8;
+                break;
+            }
+        }
+        else
+        {
+            switch (note)
+            {
+            case 0x24:
+                _storePresetBitMask &= 0x0E;
+                break;
+            case 0x25:
+                _storePresetBitMask &= 0x0D;
+                break;
+            case 0x5F:
+                _storePresetBitMask &= 0x0B;
+                break;
+            case 0x60:
+                _storePresetBitMask &= 0x07;
+                break;
+            }
+        }
+
+        if (_storePresetBitMask == 0xF)
+        {
+            storePreset();
         }
     }
 
@@ -97,6 +144,7 @@ private:
     SynthConfigurationListener *_configurationListener;
     bool _presetValid[3];
     uint8_t _currentPreset;
+    uint8_t _storePresetBitMask;
 
     const uint32_t PRESET_LOCATION = 3100;
     const uint32_t PRESET_SIZE = 300;

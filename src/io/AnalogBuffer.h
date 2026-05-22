@@ -1,5 +1,5 @@
-#ifndef ANALOGBUFFER_H
-#define ANALOGBUFFER_H
+#ifndef ANALOG_BUFFER_H
+#define ANALOG_BUFFER_H
 
 #define BUFFER_SIZE 4
 

@@ -2,7 +2,6 @@
 #define MIDIIO_H
 
 #include <Arduino.h>
-#include "../Constants.h"
 #include "ControllerIoListener.h"
 
 #define MIDI_INPUT_COUNT 7

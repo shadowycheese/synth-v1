@@ -2,7 +2,6 @@
 #define MUXIO_H
 
 #include <Arduino.h>
-#include "../Constants.h"
 #include "AnalogBuffer.h"
 #include "ControllerIoListener.h"
 

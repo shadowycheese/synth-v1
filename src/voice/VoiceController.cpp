@@ -103,12 +103,12 @@ int VoiceController::findOldestVoice(byte note)
             return i;
         }
 
-        if (voicePool[i].noteLastPlayed() == note)
+        if (voicePool[i].getLastPlayedNote() == note)
         {
             return i;
         }
 
-        uint32_t timestamp = voicePool[i].timestamp();
+        uint32_t timestamp = voicePool[i].getTimestamp();
 
         if (oldest < 0)
         {
@@ -127,7 +127,6 @@ int VoiceController::findOldestVoice(byte note)
 
 void VoiceController::updateVoiceFiltersAndEffects(uint32_t microSeconds)
 {
-    // Handle millis wrapping
     if (microSeconds >= _nextFilterUpdateTime)
     {
         int voice = _nextFilterToUpdate++;
@@ -147,7 +146,6 @@ void VoiceController::updateVoiceFiltersAndEffects(uint32_t microSeconds)
 
 void VoiceController::updateVoices(uint32_t microSeconds)
 {
-    // Handle millis wrapping
     if ((nextVoiceUpdateTime - microSeconds) > 1000000)
     {
         nextVoiceUpdateTime = microSeconds + 2;
@@ -173,7 +171,7 @@ void VoiceController::updateVoices(uint32_t microSeconds)
         _wasOverdrive = true;
     }
 
-    // Ladded is expensive in CPU and affects the voice update rate - so we go less time after
+    // Ladder is expensive in CPU and affects the voice update rate - so we go less time after
     nextVoiceUpdateTime = microSeconds + (voicePool[voice].isLadderFilterSelected() ? 750 : 1500);
 
     if (_voiceVersions[voice] != _voiceConfigurationVersion)

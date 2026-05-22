@@ -1,4 +1,3 @@
-#include "../Constants.h"
 #include "Voice.h"
 
 void Voice::init()
@@ -40,7 +39,7 @@ void Voice::init()
 
 void Voice::noteOn(byte note, float frequency, float gain)
 {
-    _gain = 0.25f;
+    _gain = 0.25f * gain;
     _frequency = frequency;
 
     configureGain();
