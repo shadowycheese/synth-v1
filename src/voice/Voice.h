@@ -28,7 +28,7 @@ public:
 
     inline bool isLadderFilterSelected() { return _filterType == FILTER_LADDER; };
     inline bool isOverdriven() { return overdrive.isOverdriven(true); }
-    void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags);
+    void onSynthConfigurationChanged(SynthConfiguration *configuration, SynthConfigurationFlags changeFlags);
     void updateFilterAndEffects();
     void setWaveformStore(WaveformStore *waveformStore) { _waveformStore = waveformStore; }
 

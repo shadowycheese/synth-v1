@@ -27,15 +27,9 @@ public:
 
     void task(uint32_t microSeconds);
 
-    void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags);
+    void onSynthConfigurationChanged(SynthConfiguration *configuration, SynthConfigurationFlags changeFlags);
 
 private:
-    void updateVoices(uint32_t microSeconds);
-    void updateVoiceFiltersAndEffects(uint32_t microSeconds);
-    void updateIndicators(uint32_t microSeconds);
-
-    inline static float midiNoteHz(int8_t note) { return 440.0f * pow(2.0f, (note - 69.0f) / 12.0f); };
-
     Voice voicePool[MAX_VOICES];
 
     AudioMixer4 mixer1;
@@ -84,22 +78,27 @@ private:
             AudioConnection(leftAmp, 0, overdrive[3], 0),
         };
 
+    void updateVoices(uint32_t microSeconds);
+    void updateVoiceFiltersAndEffects(uint32_t microSeconds);
+    void updateIndicators(uint32_t microSeconds);
+
+    int8_t findOldestVoice(byte note);
+
     byte _notesVoiceMap[256];
 
-    int findOldestVoice(byte note);
-
     // Filter updating
-    int _nextFilterToUpdate;
+    uint16_t _nextFilterToUpdate;
     uint32_t _nextFilterUpdateTime;
 
     // Voice updating
     SynthConfiguration _synthConfiguration;
-    int _voiceConfigurationVersion;
-    uint32_t nextVoiceUpdateTime;
-    int _nextVoiceToUpdate;
-    int _voiceVersions[MAX_VOICES];
-    int _pendingChanges[MAX_VOICES];
+    uint32_t _voiceConfigurationVersion;
+    uint32_t _nextVoiceUpdateTime;
+    uint16_t _nextVoiceToUpdate;
+    uint32_t _voiceVersions[MAX_VOICES];
+    SynthConfigurationFlags _pendingChanges[MAX_VOICES];
 
+    // Performance
     CallCounter _voiceUpdates;
     CallCounter _filterUpdates;
 
@@ -108,6 +107,9 @@ private:
     Indicators *_indicators;
     float _lastPeak;
     bool _wasOverdrive;
+
+    float _velocityGainMap[128];
+    float _noteFrequencyMap[128];
 };
 
 #endif

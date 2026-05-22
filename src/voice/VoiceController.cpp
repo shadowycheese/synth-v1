@@ -17,15 +17,33 @@ VoiceController::VoiceController(Indicators *inidicators, WaveformStore *wavefor
 
     _indicators = inidicators;
 
-    nextVoiceUpdateTime = millis();
+    _nextVoiceUpdateTime = millis();
 
     for (int i = 0; i < 8; i++)
     {
         voicePool[i].setWaveformStore(waveformStore);
     }
+
+    _velocityGainMap[0] = 0.0f;
+
+    const int minDb = -10.0f;
+
+    for (int v = 0; v <= 126; v++)
+    {
+        float vf = (float)v / 126.0f;
+
+        float db = minDb + (vf * (0.0f - minDb));
+
+        _velocityGainMap[v] = pow(10.0f, db / 20.0f);
+    }
+
+    for (int n = 0; n <= 127; n++)
+    {
+        _noteFrequencyMap[n] = 440.0f * pow(2.0f, (n - 69.0f) / 12.0f);
+    }
 }
 
-void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
+void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configuration, SynthConfigurationFlags changeFlags)
 {
     _synthConfiguration.copy(configuration);
 
@@ -74,15 +92,13 @@ void VoiceController::noteOn(byte note, byte velocity)
         return;
     }
 
-    int voice = findOldestVoice(note);
+    uint8_t voice = findOldestVoice(note);
 
     if (voice >= 0)
     {
         _notesVoiceMap[note] = voice;
 
-        float amplitude = pow(10.0f, (velocity - 127.0f) / 63.5f);
-
-        voicePool[voice].noteOn(note, midiNoteHz(note), amplitude);
+        voicePool[voice].noteOn(note, _noteFrequencyMap[note], _velocityGainMap[velocity]);
     }
 }
 
@@ -91,12 +107,12 @@ void VoiceController::noteOff(byte note, byte velocity)
     voicePool[_notesVoiceMap[note]].noteOff();
 }
 
-int VoiceController::findOldestVoice(byte note)
+int8_t VoiceController::findOldestVoice(byte note)
 {
-    byte oldest = -1;
+    int8_t oldest = -1;
     uint32_t oldestTimestamp = -1;
 
-    for (int i = 0; i < MAX_VOICES; i++)
+    for (uint8_t i = 0; i < MAX_VOICES; i++)
     {
         if (!voicePool[i].isPlaying())
         {
@@ -146,13 +162,13 @@ void VoiceController::updateVoiceFiltersAndEffects(uint32_t microSeconds)
 
 void VoiceController::updateVoices(uint32_t microSeconds)
 {
-    if ((nextVoiceUpdateTime - microSeconds) > 1000000)
+    if ((_nextVoiceUpdateTime - microSeconds) > 1000000)
     {
-        nextVoiceUpdateTime = microSeconds + 2;
+        _nextVoiceUpdateTime = microSeconds + 2;
         return;
     }
 
-    if (microSeconds < nextVoiceUpdateTime)
+    if (microSeconds < _nextVoiceUpdateTime)
     {
         return;
     }
@@ -172,7 +188,7 @@ void VoiceController::updateVoices(uint32_t microSeconds)
     }
 
     // Ladder is expensive in CPU and affects the voice update rate - so we go less time after
-    nextVoiceUpdateTime = microSeconds + (voicePool[voice].isLadderFilterSelected() ? 750 : 1500);
+    _nextVoiceUpdateTime = microSeconds + (voicePool[voice].isLadderFilterSelected() ? 750 : 1500);
 
     if (_voiceVersions[voice] != _voiceConfigurationVersion)
     {

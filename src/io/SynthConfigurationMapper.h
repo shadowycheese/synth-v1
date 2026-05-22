@@ -130,8 +130,7 @@ private:
     SynthConfiguration _localSynthConfiguration;
     SynthConfiguration *_synthConfiguration;
     SynthConfigurationListener *_synthConfigurationListener;
-
-    int _changeFlags;
+    SynthConfigurationFlags _changeFlags;
 
     // Envelope
     int updateVoiceAttack(int value)

@@ -7,7 +7,7 @@ public:
     SynthConfigurationListener() {};
     virtual ~SynthConfigurationListener() {};
 
-    virtual void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags);
+    virtual void onSynthConfigurationChanged(SynthConfiguration *configuration, SynthConfigurationFlags changeFlags);
 };
 
 #endif

@@ -25,7 +25,7 @@ PresetStore presetStore(&voiceController);
 SynthConfiguration synthConfiguration;
 SynthConfigurationMapper configurationMapper(&synthConfiguration, &presetStore, &indicators);
 
-InputController configurationOrchestrator(&configurationMapper);
+InputController inputController(&configurationMapper);
 
 USBHost myusb;
 USBHub hub1(myusb);
@@ -50,12 +50,12 @@ void midiNoteOff(byte channel, byte note, byte velocity)
 
 void midiPitchChange(byte channel, int pitch)
 {
-    configurationOrchestrator.midiHandler()->midiPitch(pitch);
+    inputController.midiHandler()->midiPitch(pitch);
 }
 
 void midiControlChange(byte channel, byte control, byte value)
 {
-    configurationOrchestrator.midiHandler()->midiControl(control, value);
+    inputController.midiHandler()->midiControl(control, value);
 }
 
 void midiHandleSystemExclusive(byte *array, unsigned int size)
@@ -84,7 +84,7 @@ void setup()
 
     indicators.voices(flash);
 
-    for (int level = 31; level >= MAX_VOLUME; level--)
+    for (int level = 31; level >= 21; level--)
     {
         sgtl5000.lineOutLevel(level);
 
@@ -110,7 +110,7 @@ void setup()
     usbMIDI.setHandleControlChange(midiControlChange);
     usbMIDI.setHandleSystemExclusive(midiHandleSystemExclusive);
 
-    configurationOrchestrator.begin();
+    inputController.begin();
 
     indicators.keyboardConnected(0, false);
 }
@@ -180,7 +180,7 @@ void loop()
 {
     uint32_t microSeconds = micros();
 
-    configurationOrchestrator.task(microSeconds);
+    inputController.task(microSeconds);
 
 #if LOG_AUDIO_LIB_STATS
     logAudioCPU();

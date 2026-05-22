@@ -92,7 +92,7 @@ public:
         notifyPresetUpdate();
     }
 
-    void onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
+    void onSynthConfigurationChanged(SynthConfiguration *configuration, SynthConfigurationFlags changeFlags)
     {
         _buttonConfiguration.copy(configuration);
 
@@ -163,12 +163,12 @@ private:
         _configurationListener->onSynthConfigurationChanged(&_presetConfiguration[_currentPreset - 1], ALL_CHANGED);
     }
 
-    void notifyStandardUpdate(uint16_t changeFlags)
+    void notifyStandardUpdate(SynthConfigurationFlags changeFlags)
     {
         _configurationListener->onSynthConfigurationChanged(&_buttonConfiguration, changeFlags);
     }
 
-    void notifyPassThroughUpdate(SynthConfiguration *configuration, uint16_t changeFlags)
+    void notifyPassThroughUpdate(SynthConfiguration *configuration, SynthConfigurationFlags changeFlags)
     {
         int presetIndex = _currentPreset - 1;
         bool notify = false;

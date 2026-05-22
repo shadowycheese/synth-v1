@@ -15,7 +15,7 @@ void Voice::init()
     for (int i = 0; i < 7; i++)
     {
         oscillators[i].phaseModulation(180);
-        oscillators[i].amplitude(1.0f);
+        oscillators[i].amplitude(0.9f);
     }
 
     noise.amplitude(1.0f);
@@ -69,7 +69,7 @@ void Voice::updateFilterAndEffects()
 {
 }
 
-void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, uint16_t changeFlags)
+void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, SynthConfigurationFlags changeFlags)
 {
     _voiceConfiguration.copy(configuration);
 
