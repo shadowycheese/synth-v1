@@ -42,9 +42,9 @@ private:
     AudioAmplifier rightAmp;
     AudioEffectReverb reverb;
     AudioAnalyzePeak peak;
-    AudioAnalyzeOverdrive overdrive[4];
+    AudioAnalyzeOverdrive overdrive[5];
 
-    AudioConnection patches[40] =
+    AudioConnection patches[23] =
         {
             AudioConnection(voicePool[0].getOutput(), 0, mixer1, 0),
             AudioConnection(voicePool[1].getOutput(), 0, mixer1, 1),
@@ -75,7 +75,8 @@ private:
             AudioConnection(mixer1, 0, overdrive[0], 0),
             AudioConnection(mixer2, 0, overdrive[1], 0),
             AudioConnection(masterMix, 0, overdrive[2], 0),
-            AudioConnection(leftAmp, 0, overdrive[3], 0),
+            AudioConnection(left, 0, overdrive[3], 0),
+            AudioConnection(leftAmp, 0, overdrive[4], 0),
         };
 
     void updateVoices(uint32_t microSeconds);
@@ -107,6 +108,7 @@ private:
     Indicators *_indicators;
     float _lastPeak;
     bool _wasOverdrive;
+    uint8_t _nextMixer;
 
     float _velocityGainMap[128];
     float _noteFrequencyMap[128];

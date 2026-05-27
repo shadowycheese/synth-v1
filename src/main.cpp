@@ -84,7 +84,7 @@ void setup()
 
     indicators.voices(flash);
 
-    for (int level = 31; level >= 21; level--)
+    for (int level = 31; level >= 23; level--)
     {
         sgtl5000.lineOutLevel(level);
 

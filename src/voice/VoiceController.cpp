@@ -5,17 +5,18 @@ VoiceController::VoiceController(Indicators *inidicators, WaveformStore *wavefor
 {
     for (int i = 0; i < 4; i++)
     {
-        mixer1.gain(i, 0.35f);
-        mixer2.gain(i, 0.35f);
+        mixer1.gain(i, 0.25f);
+        mixer2.gain(i, 0.25f);
     }
 
-    masterMix.gain(0, 0.70f);
-    masterMix.gain(1, 0.70f);
+    masterMix.gain(0, 0.50f);
+    masterMix.gain(1, 0.50f);
 
     left.gain(0, 1.0f);
     right.gain(0, 1.0f);
 
     _indicators = inidicators;
+    _nextMixer = 1;
 
     _nextVoiceUpdateTime = millis();
 
@@ -26,7 +27,7 @@ VoiceController::VoiceController(Indicators *inidicators, WaveformStore *wavefor
 
     _velocityGainMap[0] = 0.0f;
 
-    const int minDb = -10.0f;
+    const int minDb = -30.0f;
 
     for (int v = 0; v <= 126; v++)
     {
@@ -45,12 +46,14 @@ VoiceController::VoiceController(Indicators *inidicators, WaveformStore *wavefor
 
 void VoiceController::onSynthConfigurationChanged(SynthConfiguration *configuration, SynthConfigurationFlags changeFlags)
 {
+    const int gainMultiplier = 20;
+
     _synthConfiguration.copy(configuration);
 
     if (volumeChanged(changeFlags))
     {
-        leftAmp.gain(_synthConfiguration.ampGain * 5.0f);
-        rightAmp.gain(_synthConfiguration.ampGain * 5.0f);
+        leftAmp.gain(_synthConfiguration.ampGain * gainMultiplier);
+        rightAmp.gain(_synthConfiguration.ampGain * gainMultiplier);
     }
 
     if (effectChanged(changeFlags))
@@ -114,29 +117,33 @@ int8_t VoiceController::findOldestVoice(byte note)
 
     for (uint8_t i = 0; i < MAX_VOICES; i++)
     {
-        if (!voicePool[i].isPlaying())
+        int8_t voice = _nextMixer == 1 ? i : 7 - i;
+
+        if (!voicePool[voice].isPlaying())
         {
-            return i;
+            return voice;
         }
 
-        if (voicePool[i].getLastPlayedNote() == note)
+        if (voicePool[voice].getLastPlayedNote() == note)
         {
-            return i;
+            return voice;
         }
 
         uint32_t timestamp = voicePool[i].getTimestamp();
 
         if (oldest < 0)
         {
-            oldest = i;
+            oldest = voice;
             oldestTimestamp = timestamp;
         }
         else if (timestamp < oldestTimestamp)
         {
-            oldest = i;
+            oldest = voice;
             oldestTimestamp = timestamp;
         }
     }
+
+    _nextMixer = _nextMixer == 1 ? 2 : 1;
 
     return oldest;
 }
@@ -207,7 +214,7 @@ void VoiceController::updateIndicators(uint32_t microSeconds)
         _lastPeak = peak.read();
     }
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 5; i++)
     {
         if (overdrive[i].isOverdriven(true))
         {

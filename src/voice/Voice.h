@@ -20,14 +20,14 @@ public:
     void noteOn(byte note, float frequency, float velocity);
     void noteOff();
 
-    AudioStream &getOutput() { return postDelayMixer; }
+    inline AudioStream &getOutput() { return postDelayMixer; }
 
     inline bool isPlaying() { return envelopeVoice.isActive(); };
+    inline bool isLadderFilterSelected() { return _filterType == FILTER_LADDER; };
     inline uint32_t getTimestamp() { return _timestamp; };
     inline byte getLastPlayedNote() { return _note; };
 
-    inline bool isLadderFilterSelected() { return _filterType == FILTER_LADDER; };
-    inline bool isOverdriven() { return overdrive.isOverdriven(true); }
+    bool isOverdriven();
     void onSynthConfigurationChanged(SynthConfiguration *configuration, SynthConfigurationFlags changeFlags);
     void updateFilterAndEffects();
     void setWaveformStore(WaveformStore *waveformStore) { _waveformStore = waveformStore; }
@@ -59,11 +59,11 @@ private:
     AudioEffectEnvelope envelopeLfo1b;
     AudioEffectEnvelope envelopeLfo1c;
     AudioEffectEnvelope envelopeLfo2;
-    AudioAnalyzeOverdrive overdrive;
+    AudioAnalyzeOverdrive overdrive[5];
 
     AudioMixer4 filterMixer;
 
-    AudioConnection patches[39] =
+    AudioConnection patches[40] =
         {
             AudioConnection(lfo1a, 0, envelopeLfo1a, 0),
             AudioConnection(lfo1b, 0, envelopeLfo1b, 0),
@@ -105,7 +105,12 @@ private:
             AudioConnection(preDelayMixer, 0, delay, 0),
             AudioConnection(envelopeVoice, 0, postDelayMixer, 0),
             AudioConnection(delay, 0, postDelayMixer, 1),
-            AudioConnection(filterMixer, 0, overdrive, 0),
+
+            AudioConnection(oscillatorMixer1, 0, overdrive[0], 0),
+            AudioConnection(oscillatorMixer2, 0, overdrive[1], 0),
+            AudioConnection(oscillatorMixerMain, 0, overdrive[2], 0),
+            AudioConnection(filterMixer, 0, overdrive[3], 0),
+            AudioConnection(postDelayMixer, 0, overdrive[4], 0),
         };
 
     static const int FILTER_PATCH_COUNT = 3;

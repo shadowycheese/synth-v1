@@ -15,7 +15,7 @@ void Voice::init()
     for (int i = 0; i < 7; i++)
     {
         oscillators[i].phaseModulation(180);
-        oscillators[i].amplitude(0.9f);
+        oscillators[i].amplitude(1.0f);
     }
 
     noise.amplitude(1.0f);
@@ -39,7 +39,7 @@ void Voice::init()
 
 void Voice::noteOn(byte note, float frequency, float gain)
 {
-    _gain = 0.25f * gain;
+    _gain = 0.35f * gain;
     _frequency = frequency;
 
     configureGain();
@@ -63,6 +63,21 @@ void Voice::noteOff()
     envelopeLfo1b.noteOff();
     envelopeLfo1c.noteOff();
     envelopeLfo2.noteOff();
+}
+
+bool Voice::isOverdriven()
+{
+    bool overdriven = false;
+
+    for (int i = 0; i < 5; i++)
+    {
+        if (overdrive[i].isOverdriven(true))
+        {
+            overdriven = true;
+        }
+    }
+
+    return overdriven && envelopeVoice.isActive();
 }
 
 void Voice::updateFilterAndEffects()
@@ -95,14 +110,14 @@ void Voice::onSynthConfigurationChanged(SynthConfiguration *configuration, Synth
         configureEffects();
     }
 
-    if (volumeChanged(changeFlags))
-    {
-        configureGain();
-    }
-
     bool updateFilter = filterChanged(changeFlags);
     bool restartOscillators = waveformChanged(changeFlags);
     bool updateVoice = voiceChanged(changeFlags);
+
+    if (volumeChanged(changeFlags) || updateVoice)
+    {
+        configureGain();
+    }
 
     if (updateFilter)
     {
@@ -148,13 +163,25 @@ void Voice::configureVoice()
         pulseWidths[i + 1].amplitude(_voiceConfiguration.oscillators[i + 1].pulseWidth);
 
         float centsR = _voiceConfiguration.oscillators[i + 1].detune * DETUNE_MAX_SPREAD;
+
+        if (centsR > 250)
+        {
+            uint16_t centsRi = (uint16_t)centsR;
+
+            centsRi += 50;
+            centsRi -= centsRi % 100;
+
+            centsR = (float)centsRi;
+        }
+
         float centsL = -centsR;
 
         float lf = frequency * powf(2.0f, centsL / 1200.0f);
         float rf = frequency * powf(2.0f, centsR / 1200.0f);
 
-        Serial.printf("Pair %d: freq: %5.3f / %5.3f\n",
+        Serial.printf("Pair %d: cents:%0.3f freq: %5.3f / %5.3f\n",
                       i + 1,
+                      centsR,
                       lf,
                       rf);
 
@@ -200,7 +227,7 @@ void Voice::configureEffects()
 
 void Voice::configureGain()
 {
-    float gain = _voiceConfiguration.leftSideOnly ? _gain * 2.0f : _gain;
+    float gain = _voiceConfiguration.leftSideOnly ? _gain * 1.3f : _gain;
 
     float osc0Gain = gain * _voiceConfiguration.oscillators[0].gain;
     float osc1Gain = gain * _voiceConfiguration.oscillators[1].gain;

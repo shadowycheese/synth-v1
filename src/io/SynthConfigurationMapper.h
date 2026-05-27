@@ -5,7 +5,8 @@
 #include "../config/SynthConfiguration.h"
 #include "../config/SynthConfigurationListener.h"
 
-#define DEAD_ZONE 12
+#define DEAD_ZONE_TOP 11
+#define DEAD_ZONE_BOTTOM 12
 
 class SynthConfigurationMapper : public ControllerIoListener
 {
@@ -482,7 +483,7 @@ private:
 
             _localSynthConfiguration.leftSideOnly = newValue;
 
-            return VOICE_CHANGED;
+            return VOICE_CHANGED | VOLUME_CHANGED;
         }
 
         return 0;
@@ -728,11 +729,11 @@ private:
 
     int updateDetune(OscillatorConfiguration *oscillator, const char *name, int changeFlag, int value)
     {
-        float valueF = getScaledValue(value, 2);
+        float valueF = getScaledValue(value, 3);
 
         if (valueF != oscillator->detune)
         {
-            Serial.printf("%s detune %d = %0.3f\n", name, valueF);
+            Serial.printf("%s detune %d = %0.3f\n", name, value, valueF);
 
             oscillator->detune = valueF;
 
@@ -750,19 +751,19 @@ private:
 
     float getScaledValue(int value, int order)
     {
-        if (value >= (1023 - DEAD_ZONE))
+        if (value >= (1023 - DEAD_ZONE_TOP))
         {
             return 1.0f;
         }
 
-        if (value < DEAD_ZONE)
+        if (value <= DEAD_ZONE_BOTTOM)
         {
             return 0.0f;
         }
 
-        float range = 1023.0f - (DEAD_ZONE * 2);
+        float range = 1023.0f - (DEAD_ZONE_BOTTOM + DEAD_ZONE_TOP);
 
-        value -= DEAD_ZONE;
+        value -= DEAD_ZONE_BOTTOM;
 
         float valueF = (float)value / range;
         float value2 = valueF;
